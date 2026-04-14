@@ -3,6 +3,18 @@ import { Image, View, TextInput } from "react-native";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import LogoImg from "../../../assets/logo.png";
 
+/**
+ * Renders the app's bottom tab navigator with five configured tabs.
+ *
+ * The navigator includes:
+ * - Home (`index`) — header title "MatchIt" and a home icon; tab label hidden.
+ * - Search (`search`) — tab label hidden and a `headerRight` search input (icon + TextInput); search tab icon shown in the tab bar.
+ * - MatchLobby (`matchLobby`) — uses the app logo as the tab icon and sets the logo opacity to 1 when focused and 0.6 otherwise; tab label hidden.
+ * - Create (`create`) — plus icon; tab label hidden.
+ * - Profile (`profile`) — user icon; tab label hidden.
+ *
+ * @returns A JSX element rendering the configured Tabs navigator.
+ */
 export default function TabLayout() { 
     return (
         <Tabs screenOptions={{ tabBarActiveTintColor: "black" }}>

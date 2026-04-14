@@ -38,18 +38,20 @@ export interface InputProps extends Omit<TextInputProps, "style"> {
 // ─── Componenta ───────────────────────────────────────────────────────────────
 
 /**
- * Input reutilizabil cu label, iconițe, validare și feedback vizual.
+ * Reusable styled TextInput with optional label, left/right icons, password show/hide toggle, error/hint feedback, and optional character counting.
  *
- * @example
- * <Input
- *   label="Email"
- *   leftIcon="mail-outline"
- *   placeholder="email@exemplu.com"
- *   keyboardType="email-address"
- *   error={errors.email}
- *   value={email}
- *   onChangeText={setEmail}
- * />
+ * @param label - Text label shown above the input
+ * @param error - Error message; when present the input is styled as an error and the message is shown in the footer
+ * @param hint - Hint text shown in the footer when there is no error
+ * @param leftIcon - Name of an Ionicons glyph to render at the left of the input
+ * @param rightIcon - Name of an Ionicons glyph to render at the right of the input (overridden when `isPassword` is true)
+ * @param onRightIconPress - Callback invoked when the right icon is pressed (ignored for password toggle)
+ * @param containerStyle - Optional container ViewStyle to merge with the component's outer container
+ * @param isPassword - Enables built-in password show/hide behavior and toggles the right icon (default: `false`)
+ * @param maxLength - Maximum number of characters accepted by the input
+ * @param showCharCount - When `true` and `maxLength` is provided, shows the current character count (default: `false`)
+ * @param value - Controlled input value; used for rendering and character counting
+ * @returns A JSX element rendering the described input control
  */
 export function Input({
   label,

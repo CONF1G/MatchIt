@@ -33,9 +33,12 @@ type EnvConfig = {
 // ─── Funcție helper internă ───────────────────────────────────────────────────
 
 /**
- * Citește o variabilă de mediu și aruncă o eroare descriptivă dacă lipsește.
- * @param key    Numele variabilei (fără prefixul EXPO_PUBLIC_)
- * @param envKey Cheia exactă din process.env
+ * Read an environment variable and return its trimmed value, throwing if it is missing or empty.
+ *
+ * @param key - Logical variable name (without the `EXPO_PUBLIC_` prefix); used for context in error messages
+ * @param envKey - Exact key to read from `process.env`
+ * @returns The trimmed environment variable value
+ * @throws Error if `process.env[envKey]` is missing or an empty string after trimming
  */
 function requireEnv(key: string, envKey: string): string {
   const value = process.env[envKey];
@@ -49,12 +52,23 @@ function requireEnv(key: string, envKey: string): string {
   return value.trim();
 }
 
+/**
+ * Reads an environment variable and returns its trimmed value or `undefined` if it is missing or empty.
+ *
+ * @param envKey - The name of the environment variable to read from `process.env`
+ * @returns The trimmed value of the environment variable, or `undefined` when the variable is not set or is empty after trimming
+ */
 function optionalEnv(envKey: string): string | undefined {
   const value = process.env[envKey];
   return value?.trim() || undefined;
 }
 
-// ─── APP_ENV cu fallback ──────────────────────────────────────────────────────
+/**
+ * Normalize a raw environment string into the app's canonical environment tag.
+ *
+ * @param value - The raw APP_ENV-like value (e.g. process.env.EXPO_PUBLIC_APP_ENV)
+ * @returns One of `"development"`, `"staging"`, or `"production"`. Returns `"development"` when `value` is `undefined` or not recognized.
+ */
 
 function parseAppEnv(value: string | undefined): EnvConfig["APP_ENV"] {
   if (value === "staging")    return "staging";

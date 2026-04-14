@@ -33,7 +33,15 @@ type FormErrors = {
   title?: string;
 };
 
-// ─── Componenta ───────────────────────────────────────────────────────────────
+/**
+ * Modal screen that lets a user create a new catalog, manage tags and photos, and submit them to the backend.
+ *
+ * Handles title/description input, normalized tag addition/removal (up to 5), selecting and removing local photos
+ * (up to 20) with per-photo upload status, creating the catalog record, uploading photos to storage, inserting photo rows,
+ * and navigating to the newly created catalog on success.
+ *
+ * @returns A React element rendering the "Create Catalog" modal UI.
+ */
 
 export default function CreateCatalogModal() {
   const insets = useSafeAreaInsets();

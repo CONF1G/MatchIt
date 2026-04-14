@@ -26,6 +26,13 @@ const WebNavIcon = ({ name, path, iconFamily: IconFamily = AntDesign }: WebNavIc
   );
 };
 
+/**
+ * App layout that renders a top navigation bar, a narrow left sidebar for catalog navigation, and a main content area for routed pages.
+ *
+ * The top bar includes a logo that navigates to the match lobby, a centered search input, and a profile menu control. The left sidebar shows primary nav icons and a vertically scrollable list of catalog tiles that navigate to each catalog's path. The main area renders routed content via a Slot.
+ *
+ * @returns The layout's JSX element containing the navbar, sidebar, and content region.
+ */
 export default function WebLayout() {
   const router = useRouter(); // Use the hook consistently
 

@@ -42,7 +42,14 @@ const MATCH_MODES = [
   { id: "tournament", label: "Tournament", icon: "trophy", description: "Bracket elimination" },
 ];
 
-// ─── Sub-Components ───────────────────────────────────────────────────────────
+/**
+ * Renders a player row with avatar, display name, optional host badge/label, and a fixed status dot, animating its entrance.
+ *
+ * @param player - Player data object (expected to include `profiles.username` for display; falls back to a placeholder if missing)
+ * @param isHost - Whether to show host-specific UI (badge and "HOST" label)
+ * @param index - Zero-based index used to stagger the entrance animation
+ * @returns The rendered player row React element
+ */
 
 function PlayerRow({ player, isHost, index }) {
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -78,6 +85,15 @@ function PlayerRow({ player, isHost, index }) {
   );
 }
 
+/**
+ * Renders a selectable match mode card showing an icon, label, and description.
+ *
+ * The visual appearance changes when selected; tapping the card invokes the provided handler.
+ *
+ * @param mode - Mode metadata containing at least `icon`, `label`, and `description`
+ * @param onPress - Callback invoked when the card is pressed
+ * @returns The rendered mode card element
+ */
 function ModeCard({ mode, selected, onPress }) {
   return (
     <TouchableOpacity
@@ -97,7 +113,15 @@ function ModeCard({ mode, selected, onPress }) {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Render the Match Lobby screen that displays the current lobby, players, match mode selector, and host controls.
+ *
+ * Initializes or joins a match, subscribes to realtime player updates, and provides actions to invite players and start the match.
+ *
+ * @param navigation - Navigation object used to go back or replace the screen with the match interface
+ * @param route - Route object; may contain `params.matchId` to join an existing lobby
+ * @returns The rendered Match Lobby React element
+ */
 
 export default function MatchLobby({ navigation, route }) {
   const insets = useSafeAreaInsets();

@@ -51,7 +51,13 @@ const CREATE_OPTIONS: CreateOption[] = [
   },
 ];
 
-// ─── Card opțiune ─────────────────────────────────────────────────────────────
+/**
+ * Renders a selectable, animated card for a creation option that navigates to the option's route when pressed.
+ *
+ * @param option - The creation entry to display (id, icon, title, subtitle, route, accentColor).
+ * @param index - Zero-based position used to stagger the entry animation delay.
+ * @returns The rendered option card element.
+ */
 
 function CreateOptionCard({
   option,
@@ -101,7 +107,14 @@ function CreateOptionCard({
   );
 }
 
-// ─── Ecranul principal ────────────────────────────────────────────────────────
+/**
+ * Renders the "Create" hub screen with a header, a list of creation options, a divider, and quick-action buttons.
+ *
+ * The screen applies the device safe-area top inset, animates its sections on entry, and provides pressable options
+ * that navigate to their respective routes (including invite friends and join-by-code actions).
+ *
+ * @returns The React element for the Create screen.
+ */
 
 export default function CreateScreen() {
   const insets = useSafeAreaInsets();
