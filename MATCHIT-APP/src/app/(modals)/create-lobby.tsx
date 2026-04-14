@@ -28,7 +28,13 @@ const MODES: Array<{ id: LobbyMode; label: string; icon: string; desc: string }>
   { id: "tournament",   label: "Tournament",   icon: "trophy",       desc: "Eliminare directă, bracket style" },
 ];
 
-// ─── Componenta ───────────────────────────────────────────────────────────────
+/**
+ * Renders the "Create Lobby" modal UI that allows an authenticated user to configure and create a new game lobby.
+ *
+ * Provides controls for an optional title, game mode selection, maximum players, visibility toggle, and optional catalog selection; submitting creates the lobby, adds the host as a participant, and navigates to the created lobby.
+ *
+ * @returns The React element for the create-lobby modal screen.
+ */
 
 export default function CreateLobbyModal() {
   const insets = useSafeAreaInsets();

@@ -5,6 +5,13 @@ import { FlashList } from "@shopify/flash-list";
 import FeedItem from '../../components/feed/FeedItem';
 import posts from '../../../assets/data/posts';
 
+/**
+ * Renders the home feed as a responsive grid of post cards.
+ *
+ * Renders a FlashList of posts laid out in columns (7 columns on web, 2 on other platforms) with consistent horizontal spacing between items and top/side list padding. The posts array reference is memoized to remain stable across renders.
+ *
+ * @returns The component's rendered JSX element representing the feed grid.
+ */
 export default function HomeScreen() {
   const numColumns = Platform.OS === 'web' ? 7 : 2;
   const memoizedPosts = useMemo(() => posts, []);

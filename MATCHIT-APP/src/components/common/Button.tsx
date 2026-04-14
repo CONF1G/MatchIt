@@ -54,13 +54,22 @@ const SIZE_CONFIG: Record<ButtonSize, {
 // ─── Componenta ───────────────────────────────────────────────────────────────
 
 /**
- * Buton reutilizabil cu variante, mărimi, iconițe și stări de loading.
+ * Render a configurable pressable button with optional icons and loading state.
  *
- * @example
- * <Button label="Salvează" onPress={handleSave} />
- * <Button label="Anulează" onPress={handleCancel} variant="secondary" />
- * <Button label="Se salvează..." onPress={() => {}} loading />
- * <Button label="Șterge" onPress={handleDelete} variant="danger" leftIcon="trash" />
+ * Renders a button whose appearance and behavior are controlled by the provided props.
+ *
+ * @param label - The text shown inside the button.
+ * @param onPress - Callback invoked when the button is pressed.
+ * @param variant - Visual variant that adjusts colors and border (e.g., "primary", "secondary", "danger"); defaults to "primary".
+ * @param size - Visual size that adjusts padding, font and icon sizes; one of "sm", "md", or "lg" (default: "md").
+ * @param loading - When true, replaces the label and icons with a loading indicator and disables interaction.
+ * @param disabled - When true, visually dims the button and disables interaction.
+ * @param leftIcon - Optional Ionicons glyph name to render to the left of the label.
+ * @param rightIcon - Optional Ionicons glyph name to render to the right of the label.
+ * @param fullWidth - When true, the button expands to fill the container width.
+ * @param style - Additional container style to merge with the button's styles.
+ * @param textStyle - Additional text style to merge with the label's styles.
+ * @returns A pressable button element styled and composed according to the props.
  */
 export function Button({
   label,
