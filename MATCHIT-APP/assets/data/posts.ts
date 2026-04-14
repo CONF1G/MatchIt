@@ -1,0 +1,22 @@
+export default [
+  { id: 0, title: 'Minimalist Interior', image: "https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg", aspectRatio: 0.7 },
+  { id: 1, title: 'Abstract Art Concept', image: "https://images.pexels.com/photos/1148998/pexels-photo-1148998.jpeg", aspectRatio: 1.2 },
+  { id: 2, title: 'Mountain Peaks', image: "https://images.pexels.com/photos/417173/pexels-photo-417173.jpeg", aspectRatio: 1.5 },
+  { id: 3, title: 'Cyberpunk Tokyo', image: "https://images.pexels.com/photos/1510595/pexels-photo-1510595.jpeg", aspectRatio: 0.6 },
+  { id: 4, title: 'Modern Arch', image: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg", aspectRatio: 1 },
+  { id: 5, title: 'Vaporwave Sunset', image: "https://images.pexels.com/photos/2096477/pexels-photo-2096477.jpeg", aspectRatio: 0.8 },
+  { id: 6, title: 'Ocean Waves', image: "https://images.pexels.com/photos/1001682/pexels-photo-1001682.jpeg", aspectRatio: 1.3 },
+  { id: 7, title: 'Street Photography', image: "https://images.pexels.com/photos/1910225/pexels-photo-1910225.jpeg", aspectRatio: 0.65 },
+  { id: 8, title: 'Vintage Film', image: "https://images.pexels.com/photos/1421248/pexels-photo-1421248.jpeg", aspectRatio: 1.1 },
+  { id: 9, title: 'Desert Dunes', image: "https://images.pexels.com/photos/1001435/pexels-photo-1001435.jpeg", aspectRatio: 0.9 },
+  { id: 10, title: 'Lo-fi Study Room', image: "https://images.pexels.com/photos/3774059/pexels-photo-3774059.jpeg", aspectRatio: 0.75 },
+  { id: 11, title: 'Neon Nights', image: "https://images.pexels.com/photos/2253273/pexels-photo-2253273.jpeg", aspectRatio: 1.4 },
+  { id: 12, title: 'Forest Path', image: "https://images.pexels.com/photos/113338/pexels-photo-113338.jpeg", aspectRatio: 0.6 },
+  { id: 13, title: 'Skateboard Culture', image: "https://images.pexels.com/photos/1018484/pexels-photo-1018484.jpeg", aspectRatio: 1.2 },
+  { id: 14, title: 'Morning Coffee', image: "https://images.pexels.com/photos/312418/pexels-photo-312418.jpeg", aspectRatio: 1 },
+  { id: 15, title: 'Plant Aesthetic', image: "https://images.pexels.com/photos/793012/pexels-photo-793012.jpeg", aspectRatio: 0.85 },
+  { id: 16, title: 'Brutalist Concrete', image: "https://images.pexels.com/photos/1106476/pexels-photo-1106476.jpeg", aspectRatio: 0.7 },
+  { id: 17, title: 'Cozy Rain', image: "https://images.pexels.com/photos/125510/pexels-photo-125510.jpeg", aspectRatio: 1.5 },
+  { id: 18, title: 'Retro Gaming', image: "https://images.pexels.com/photos/129728/pexels-photo-129728.jpeg", aspectRatio: 0.9 },
+  { id: 19, title: 'City Lights', image: "https://images.pexels.com/photos/1034662/pexels-photo-1034662.jpeg", aspectRatio: 0.65 }
+];
