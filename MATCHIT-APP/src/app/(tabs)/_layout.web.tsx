@@ -3,10 +3,11 @@ import { View, Text, TextInput, Pressable, Image, ScrollView } from 'react-nativ
 import { AntDesign, Feather } from '@expo/vector-icons';
 import LogoImg from '../../../assets/logo.png';
 
-const boards = [
+// this must be a from the user saved catalogs
+const catalogs = [
     { id: '1', name: 'Summer 2026', path: '/', image: 'https://picsum.photos/200' },
-    { id: '2', name: 'UI Design', path: '/match', image: 'https://picsum.photos/201' },
-    { id: '3', name: 'MatchIt Ideas', path: '/post', image: 'https://picsum.photos/202' },
+    { id: '2', name: 'UI Design', path: '/matchLobby', image: 'https://picsum.photos/201' },
+    { id: '3', name: 'MatchIt Ideas', path: '/create', image: 'https://picsum.photos/202' },
     { id: '4', name: 'Recipes', path: '/profile', image: 'https://picsum.photos/203' },
 ];
 
@@ -33,7 +34,7 @@ export default function WebLayout() {
       {/* TOP NAVBAR */}
       <View style={{ height: 60, borderBottomWidth: 1, borderColor: '#eee', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
         <Pressable 
-          onPress={() => router.replace('/match')} 
+          onPress={() => router.replace('/matchLobby')} 
           style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, marginRight: 20 })}
         >
           <Image source={LogoImg} style={{ width: 50, height: 50, resizeMode: 'contain' }} />
@@ -48,7 +49,10 @@ export default function WebLayout() {
 
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Feather name="user" size={24} color="white" style={{ backgroundColor: '#ccc', borderRadius: 20, padding: 8, marginRight: 5 }} />
-          <Feather name="chevron-down" size={18} color="black" />
+            <Pressable onPress={() => router.push('/profile')} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, marginLeft: 15 })}>
+              <Feather name="chevron-down" size={18} color="black" />
+            </Pressable>
+
         </View>
       </View>
 
@@ -61,16 +65,16 @@ export default function WebLayout() {
           {/* Main Nav Icons */}
           <View style={{ paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#eee', width: '100%', alignItems: 'center' }}>
             <WebNavIcon name="home" path="/" />
-            <WebNavIcon name="plus" path="/post" />
+            <WebNavIcon name="plus" path="/create" />
           </View>
 
-          {/* BOARDS LIST (Narrow stack) */}
+          {/* BATALOGS LIST (Narrow stack) */}
           <ScrollView 
             showsVerticalScrollIndicator={false} 
             contentContainerStyle={{ alignItems: 'center', paddingTop: 15 }}
             style={{ width: '100%' }}
           >
-            {boards.map((board) => (
+            {catalogs.map((board) => (
               <Pressable 
                 key={board.id}
                 onPress={() => router.push(board.path as Href)}
