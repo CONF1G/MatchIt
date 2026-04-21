@@ -1,4 +1,3 @@
-// src/screens/MatchLobby.js
 import { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -12,159 +11,140 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 import {
   createMatch,
   joinMatch,
   fetchMatchPlayers,
   subscribeToMatchPlayers,
-  supabase,
-} from "../../services/supabase";
+} from "../../services/lobby";
+import { supabase } from "../../services/supabase";
 
-// ─── Design Tokens ────────────────────────────────────────────────────────────
-const C = {
-  bg: "#0D0D0D",
-  surface: "#1A1A1A",
-  surfaceHigh: "#242424",
-  accent: "#E8FF47",
-  accentDim: "#B8CC38",
-  text: "#F0F0F0",
-  textMuted: "#888",
-  border: "#2A2A2A",
-  danger: "#FF5C5C",
-  success: "#47FF9C",
-};
+const C = COLORS;
 
 const MATCH_MODES = [
-  { id: "first_match", label: "First Match", icon: "flash", description: "First to clear wins" },
-  { id: "deck", label: "Full Deck", icon: "layers", description: "Play all cards in deck" },
-  { id: "tournament", label: "Tournament", icon: "trophy", description: "Bracket elimination" },
+  { id: "first_match", label: "First Match", icon: "flash" as const, description: "First to clear wins" },
+  { id: "deck",        label: "Full Deck",   icon: "layers" as const, description: "Play all cards in deck" },
+  { id: "tournament",  label: "Tournament",  icon: "trophy" as const, description: "Bracket elimination" },
 ];
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
 
-function PlayerRow({ player, isHost, index }) {
-  const fadeAnim = useState(new Animated.Value(0))[0];
+function PlayerRow({ player, isHost, index }: { player: any; isHost: boolean; index: number }) {
+  const fadeAnim  = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(20))[0];
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 300, delay: index * 60, useNativeDriver: true }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 300, delay: index * 60, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 300, delay: index * 60, useNativeDriver: true }),
     ]).start();
   }, []);
 
   const username = player?.profiles?.username ?? "Anonymous";
-  const initials = username.slice(0, 2).toUpperCase();
+  const initials  = username.slice(0, 2).toUpperCase();
 
   return (
     <Animated.View style={[styles.playerRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      {/* Avatar */}
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>{initials}</Text>
         {isHost && <View style={styles.hostBadge} />}
       </View>
-
-      {/* Info */}
       <View style={styles.playerInfo}>
         <Text style={styles.playerName}>{username}</Text>
         {isHost && <Text style={styles.hostLabel}>HOST</Text>}
       </View>
-
-      {/* Status dot */}
       <View style={[styles.statusDot, { backgroundColor: C.success }]} />
     </Animated.View>
   );
 }
 
-function ModeCard({ mode, selected, onPress }) {
+function ModeCard({ mode, selected, onPress }: { mode: typeof MATCH_MODES[0]; selected: boolean; onPress: () => void }) {
   return (
     <TouchableOpacity
       style={[styles.modeCard, selected && styles.modeCardSelected]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Ionicons
-        name={mode.icon}
-        size={20}
-        color={selected ? C.bg : C.textMuted}
-        style={{ marginBottom: 6 }}
-      />
+      <Ionicons name={mode.icon} size={20} color={selected ? C.bg : C.textMuted} style={{ marginBottom: 6 }} />
       <Text style={[styles.modeLabel, selected && styles.modeLabelSelected]}>{mode.label}</Text>
-      <Text style={[styles.modeDesc, selected && styles.modeDescSelected]}>{mode.description}</Text>
+      <Text style={[styles.modeDesc,  selected && styles.modeDescSelected]}>{mode.description}</Text>
     </TouchableOpacity>
   );
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
-export default function MatchLobby({ navigation, route }) {
+export default function MatchLobby() {
   const insets = useSafeAreaInsets();
-  const existingMatchId = route?.params?.matchId ?? null;
+  const params  = useLocalSearchParams<{ matchId?: string }>();
+  const existingMatchId = params.matchId ?? null;
 
-  const [match, setMatch] = useState(null);
-  const [players, setPlayers] = useState([]);
-  const [selectedMode, setSelectedMode] = useState("first_match");
-  const [loading, setLoading] = useState(true);
-  const [starting, setStarting] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState(null);
+  const [match,         setMatch]         = useState<any>(null);
+  const [players,       setPlayers]       = useState<any[]>([]);
+  const [selectedMode,  setSelectedMode]  = useState("first_match");
+  const [loading,       setLoading]       = useState(true);
+  const [starting,      setStarting]      = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // ── Init ────────────────────────────────────────────────────────────────────
+  // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUserId(user?.id ?? null);
 
-      let matchData;
-      if (existingMatchId) {
-        // Join an existing lobby via invite link
-        await joinMatch(existingMatchId);
-        const { data } = await supabase
-          .from("matches")
-          .select("*")
-          .eq("id", existingMatchId)
-          .single();
-        matchData = data;
-        setSelectedMode(data?.mode ?? "first_match");
-      } else {
-        // Create a brand new lobby
-        matchData = await createMatch(selectedMode);
+        let matchData: any;
+        if (existingMatchId) {
+          await joinMatch(existingMatchId);
+          const { data } = await supabase
+            .from("matches")
+            .select("*")
+            .eq("id", existingMatchId)
+            .single();
+          matchData = data;
+          setSelectedMode(data?.mode ?? "first_match");
+        } else {
+          matchData = await createMatch(selectedMode);
+        }
+
+        setMatch(matchData);
+        const initialPlayers = await fetchMatchPlayers(matchData.id);
+        setPlayers(initialPlayers);
+      } catch (e: any) {
+        Alert.alert("Error", e.message ?? "Failed to create lobby");
+      } finally {
+        setLoading(false);
       }
-
-      setMatch(matchData);
-      const initialPlayers = await fetchMatchPlayers(matchData.id);
-      setPlayers(initialPlayers);
-      setLoading(false);
     })();
   }, []);
 
-  // ── Realtime subscription ───────────────────────────────────────────────────
+  // ── Realtime subscription ─────────────────────────────────────────────────
   useEffect(() => {
     if (!match) return;
-
     const channel = subscribeToMatchPlayers(match.id, async () => {
       const updated = await fetchMatchPlayers(match.id);
       setPlayers(updated);
     });
-
     return () => { channel.unsubscribe(); };
   }, [match]);
 
-  // ── Invite link ─────────────────────────────────────────────────────────────
+  // ── Invite ────────────────────────────────────────────────────────────────
   const handleInvite = useCallback(async () => {
     if (!match) return;
     try {
       await Share.share({
-        message: `Join my CardGame lobby! Code: ${match.invite_code}\nhttps://cardgame.app/lobby/${match.id}`,
-        title: "Invite to match",
+        message: `Join my MatchIt lobby!\nCode: ${match.invite_code}\nmatchit://guest/join/${match.invite_code}`,
+        title:   "Join my MatchIt lobby",
       });
     } catch {
       Alert.alert("Share failed", "Could not open share sheet.");
     }
   }, [match]);
 
-  // ── Start match ─────────────────────────────────────────────────────────────
+  // ── Start ─────────────────────────────────────────────────────────────────
   const handleStart = useCallback(async () => {
     if (!match) return;
     setStarting(true);
@@ -174,8 +154,16 @@ export default function MatchLobby({ navigation, route }) {
         .update({ status: "in_progress", mode: selectedMode })
         .eq("id", match.id);
 
-      navigation.replace("MatchInterface", { matchId: match.id, mode: selectedMode });
-    } catch (e) {
+      // Broadcast start event to all guests waiting in the presence channel
+      await supabase
+        .channel(`match-presence:${match.id}`)
+        .send({ type: "broadcast", event: "match_started", payload: {} });
+
+      router.replace({
+        pathname: "/lobby/swipe",
+        params:   { matchId: match.id, mode: selectedMode },
+      });
+    } catch (e: any) {
       Alert.alert("Error", e.message);
       setStarting(false);
     }
@@ -183,7 +171,7 @@ export default function MatchLobby({ navigation, route }) {
 
   const isHost = match?.host_id === currentUserId;
 
-  // ── Loading ─────────────────────────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: C.bg }]}>
@@ -193,12 +181,12 @@ export default function MatchLobby({ navigation, route }) {
     );
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={C.text} />
         </TouchableOpacity>
         <View>
@@ -217,7 +205,7 @@ export default function MatchLobby({ navigation, route }) {
         renderItem={null}
         ListHeaderComponent={
           <>
-            {/* Players Section */}
+            {/* Players */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Players</Text>
@@ -236,7 +224,6 @@ export default function MatchLobby({ navigation, route }) {
                 />
               ))}
 
-              {/* Empty slots */}
               {Array.from({ length: Math.max(0, 3 - players.length) }).map((_, i) => (
                 <View key={`empty-${i}`} style={[styles.playerRow, styles.playerRowEmpty]}>
                   <View style={[styles.avatar, styles.avatarEmpty]}>
@@ -301,137 +288,135 @@ export default function MatchLobby({ navigation, route }) {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
+  screen:      { flex: 1, backgroundColor: C.bg },
+  center:      { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
   loadingText: { color: C.textMuted, fontFamily: "monospace" },
 
-  // Header
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    flexDirection:     "row",
+    alignItems:        "center",
+    justifyContent:    "space-between",
+    paddingHorizontal: SPACING.lg,
+    paddingVertical:   SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
-  backBtn: { padding: 4 },
-  headerTitle: { color: C.text, fontSize: 17, fontWeight: "700", letterSpacing: 0.3 },
-  headerCode: { color: C.textMuted, fontSize: 11, fontWeight: "600", letterSpacing: 1.5, marginTop: 1 },
+  backBtn:      { padding: 4 },
+  headerTitle:  { color: C.text, fontSize: FONT_SIZE.lg, fontWeight: "700", letterSpacing: 0.3 },
+  headerCode:   { color: C.textMuted, fontSize: FONT_SIZE.xs, fontWeight: "600", letterSpacing: 1.5, marginTop: 1 },
   inviteBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderColor: C.accent,
-    borderRadius: 20,
+    flexDirection:    "row",
+    alignItems:       "center",
+    gap:              6,
+    borderWidth:      1,
+    borderColor:      C.accent,
+    borderRadius:     RADIUS.full,
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical:  7,
   },
-  inviteBtnText: { color: C.accent, fontSize: 13, fontWeight: "700" },
+  inviteBtnText: { color: C.accent, fontSize: FONT_SIZE.sm, fontWeight: "700" },
 
-  // Section
-  section: { paddingHorizontal: 20, paddingTop: 28 },
+  section:       { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xl },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  sectionTitle: { color: C.text, fontSize: 13, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
-  playerCount: { color: C.accent, fontSize: 14, fontWeight: "800" },
-  textMuted: { color: C.textMuted },
+  sectionTitle:  { color: C.text, fontSize: FONT_SIZE.xs, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" },
+  playerCount:   { color: C.accent, fontSize: FONT_SIZE.md, fontWeight: "800" },
+  textMuted:     { color: C.textMuted },
 
-  // Player row
   playerRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection:   "row",
+    alignItems:      "center",
     backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: C.border,
+    borderRadius:    RADIUS.lg,
+    padding:         12,
+    marginBottom:    8,
+    borderWidth:     1,
+    borderColor:     C.border,
   },
   playerRowEmpty: { opacity: 0.35 },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width:           40,
+    height:          40,
+    borderRadius:    20,
     backgroundColor: C.accentDim,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
+    justifyContent:  "center",
+    alignItems:      "center",
+    position:        "relative",
   },
-  avatarEmpty: { backgroundColor: C.surfaceHigh, borderWidth: 1, borderColor: C.border, borderStyle: "dashed" },
-  avatarText: { color: C.bg, fontSize: 14, fontWeight: "800" },
+  avatarEmpty: {
+    backgroundColor: C.surfaceHigh,
+    borderWidth:     1,
+    borderColor:     C.border,
+    borderStyle:     "dashed",
+  },
+  avatarText:  { color: C.bg, fontSize: FONT_SIZE.md, fontWeight: "800" },
   hostBadge: {
-    position: "absolute",
-    bottom: -1,
-    right: -1,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    position:        "absolute",
+    bottom:          -1,
+    right:           -1,
+    width:           10,
+    height:          10,
+    borderRadius:    5,
     backgroundColor: C.accent,
-    borderWidth: 2,
-    borderColor: C.surface,
+    borderWidth:     2,
+    borderColor:     C.surface,
   },
-  playerInfo: { flex: 1, marginLeft: 12 },
-  playerName: { color: C.text, fontSize: 15, fontWeight: "600" },
-  hostLabel: { color: C.accentDim, fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginTop: 2 },
-  emptySlot: { color: C.textMuted, fontSize: 14, marginLeft: 12 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  playerInfo:  { flex: 1, marginLeft: 12 },
+  playerName:  { color: C.text, fontSize: FONT_SIZE.base, fontWeight: "600" },
+  hostLabel:   { color: C.accentDim, fontSize: FONT_SIZE.xs, fontWeight: "700", letterSpacing: 1.2, marginTop: 2 },
+  emptySlot:   { color: C.textMuted, fontSize: FONT_SIZE.md, marginLeft: 12 },
+  statusDot:   { width: 8, height: 8, borderRadius: 4 },
 
-  // Mode cards
-  modeRow: { flexDirection: "row", gap: 10, marginTop: 8 },
+  modeRow:  { flexDirection: "row", gap: 10, marginTop: 8 },
   modeCard: {
-    flex: 1,
+    flex:            1,
     backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: C.border,
-    alignItems: "center",
+    borderRadius:    RADIUS.lg,
+    padding:         14,
+    borderWidth:     1,
+    borderColor:     C.border,
+    alignItems:      "center",
   },
-  modeCardSelected: {
-    backgroundColor: C.accent,
-    borderColor: C.accent,
-  },
-  modeLabel: { color: C.text, fontSize: 12, fontWeight: "700", textAlign: "center", marginBottom: 2 },
-  modeLabelSelected: { color: C.bg },
-  modeDesc: { color: C.textMuted, fontSize: 10, textAlign: "center", lineHeight: 13 },
-  modeDescSelected: { color: "#00000099" },
-  hostOnly: { color: C.textMuted, fontSize: 11, marginTop: 10, textAlign: "center" },
+  modeCardSelected:    { backgroundColor: C.accent, borderColor: C.accent },
+  modeLabel:           { color: C.text,    fontSize: FONT_SIZE.xs,  fontWeight: "700", textAlign: "center", marginBottom: 2 },
+  modeLabelSelected:   { color: C.bg },
+  modeDesc:            { color: C.textMuted, fontSize: 10, textAlign: "center", lineHeight: 13 },
+  modeDescSelected:    { color: "#00000099" },
+  hostOnly:            { color: C.textMuted, fontSize: FONT_SIZE.xs, marginTop: 10, textAlign: "center" },
 
-  // Bottom bar
   bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    position:        "absolute",
+    bottom:          0,
+    left:            0,
+    right:           0,
+    paddingHorizontal: SPACING.lg,
+    paddingTop:      SPACING.md,
     backgroundColor: C.bg,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
+    borderTopWidth:  1,
+    borderTopColor:  C.border,
   },
   startBtn: {
     backgroundColor: C.accent,
-    borderRadius: 16,
+    borderRadius:    RADIUS.lg,
     paddingVertical: 16,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
+    flexDirection:   "row",
+    justifyContent:  "center",
+    alignItems:      "center",
+    gap:             8,
   },
   startBtnDisabled: { opacity: 0.4 },
-  startBtnText: { color: C.bg, fontSize: 16, fontWeight: "800", letterSpacing: 0.4 },
+  startBtnText:     { color: C.bg, fontSize: FONT_SIZE.lg, fontWeight: "800", letterSpacing: 0.4 },
   waitingBanner: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
+    flexDirection:   "row",
+    justifyContent:  "center",
+    alignItems:      "center",
+    gap:             8,
     paddingVertical: 16,
     backgroundColor: C.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+    borderRadius:    RADIUS.lg,
+    borderWidth:     1,
+    borderColor:     C.border,
   },
-  waitingText: { color: C.accentDim, fontSize: 14, fontWeight: "600" },
+  waitingText: { color: C.accentDim, fontSize: FONT_SIZE.md, fontWeight: "600" },
 });

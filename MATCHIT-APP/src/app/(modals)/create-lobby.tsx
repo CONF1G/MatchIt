@@ -36,7 +36,7 @@ export default function CreateLobbyModal() {
 
   const [title,       setTitle]       = useState("");
   const [mode,        setMode]        = useState<LobbyMode>("first_match");
-  const [maxPlayers,  setMaxPlayers]  = useState(LOBBY.DEFAULT_MAX_PLAYERS);
+  const [maxPlayers,  setMaxPlayers]  = useState<number>(LOBBY.DEFAULT_MAX_PLAYERS);
   const [isPublic,    setIsPublic]    = useState(false);
   const [catalogId,   setCatalogId]   = useState<string | null>(null);
   const [catalogs,    setCatalogs]    = useState<Catalog[]>([]);
@@ -79,11 +79,18 @@ export default function CreateLobbyModal() {
       }
 
       // Auto-join host
-      await supabase.from("lobby_participants").insert({
+      const { error: joinError } = await supabase.from("lobby_participants").insert({ 
         lobby_id: data.id,
         user_id:  user.id,
         role:     "host",
       });
+        if (joinError) {  
+        // Rollback: delete the lobby since host couldn't join  
+        await supabase.from("lobbies").delete().eq("id", data.id);  
+        Alert.alert("Eroare", "Nu s-a putut crea lobby-ul");  
+        setSubmitting(false);  
+        return;  
+      } 
 
       router.replace(`/lobby/${data.id}`);
     } catch (e) {
