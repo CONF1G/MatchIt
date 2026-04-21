@@ -30,7 +30,14 @@ const MATCH_MODES = [
   { id: "tournament",  label: "Tournament",  icon: "trophy" as const, description: "Bracket elimination" },
 ];
 
-// ─── Sub-Components ───────────────────────────────────────────────────────────
+/**
+ * Renders an animated lobby row for a player, including avatar initials, host badge/label, and a status dot.
+ *
+ * @param player - Player object; may include `profiles.username` (falls back to `"Anonymous"` when missing)
+ * @param isHost - Whether this player is the match host; when true shows host badge and "HOST" label
+ * @param index - Zero-based index used to stagger the entrance animation timing
+ * @returns The rendered animated player row element
+ */
 
 function PlayerRow({ player, isHost, index }: { player: any; isHost: boolean; index: number }) {
   const fadeAnim  = useState(new Animated.Value(0))[0];
@@ -61,6 +68,14 @@ function PlayerRow({ player, isHost, index }: { player: any; isHost: boolean; in
   );
 }
 
+/**
+ * Renders a pressable card representing a match mode option.
+ *
+ * @param mode - The match mode entry (id, label, icon, description) to display
+ * @param selected - Whether this mode is currently selected; adjusts styling accordingly
+ * @param onPress - Callback invoked when the card is pressed
+ * @returns A pressable card element representing the provided match mode
+ */
 function ModeCard({ mode, selected, onPress }: { mode: typeof MATCH_MODES[0]; selected: boolean; onPress: () => void }) {
   return (
     <TouchableOpacity
@@ -75,7 +90,13 @@ function ModeCard({ mode, selected, onPress }: { mode: typeof MATCH_MODES[0]; se
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Screen component that creates or joins a match lobby, displays current players, and provides host controls.
+ *
+ * Renders the lobby UI including invite/share, an animated player list with placeholders, selectable match modes (host-only), and a start action that updates match state and navigates to the game flow. On mount the component initializes or joins a match, loads the player list, and subscribes to realtime player updates; it also exposes invite and start handlers used by the UI.
+ *
+ * @returns The rendered Match Lobby screen as a React element.
+ */
 
 export default function MatchLobby() {
   const insets = useSafeAreaInsets();

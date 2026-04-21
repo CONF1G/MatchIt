@@ -27,7 +27,14 @@ type PickedAsset = {
 
 type UploadStatus = "idle" | "uploading" | "done" | "error";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+/**
+ * Parse a raw tag string into an array of normalized tag tokens.
+ *
+ * Normalization removes a leading `#`, lowercases, trims whitespace, and discards empty tokens.
+ *
+ * @param raw - Raw tag text (tokens separated by whitespace and/or commas)
+ * @returns An array of cleaned tag strings
+ */
 
 function splitTags(raw: string): string[] {
   return raw
@@ -36,7 +43,19 @@ function splitTags(raw: string): string[] {
     .filter(Boolean);
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+/**
+ * Renders an image thumbnail showing the photo and its upload status with an optional remove control.
+ *
+ * Displays the image from `uri`. When `status` is:
+ * - `"uploading"`: shows a centered activity indicator,
+ * - `"done"`: shows a success checkmark overlay,
+ * - `"error"`: shows an error close icon overlay.
+ * The remove button is rendered only when `status` is `"idle"` and invokes `onRemove` when pressed.
+ *
+ * @param uri - Source URI of the image to display
+ * @param onRemove - Callback invoked when the thumbnail's remove button is pressed
+ * @param status - Current upload status (`"idle" | "uploading" | "done" | "error"`)
+ */
 
 function PhotoThumbnail({
   uri,
@@ -101,7 +120,17 @@ const thumb = StyleSheet.create({
   },
 });
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+/**
+ * Screen component that lets the user select up to 10 photos, choose a target catalog,
+ * add an optional caption and tags, and upload the photos while showing per-photo
+ * status and overall progress.
+ *
+ * The UI includes a thumbnail grid with remove controls, a catalog picker (with a
+ * create-catalog CTA when none exist), caption and tag inputs (tags are normalized
+ * and deduplicated), and a footer with upload button or progress indicator.
+ *
+ * @returns The JSX element for the "Add Photos" screen.
+ */
 
 export default function PostScreen() {
   const insets          = useSafeAreaInsets();

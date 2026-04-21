@@ -54,13 +54,22 @@ const SIZE_CONFIG: Record<ButtonSize, {
 // ─── Componenta ───────────────────────────────────────────────────────────────
 
 /**
- * Buton reutilizabil cu variante, mărimi, iconițe și stări de loading.
+ * Render a customizable button supporting visual variants, sizes, optional icons, and a loading state.
  *
- * @example
- * <Button label="Salvează" onPress={handleSave} />
- * <Button label="Anulează" onPress={handleCancel} variant="secondary" />
- * <Button label="Se salvează..." onPress={() => {}} loading />
- * <Button label="Șterge" onPress={handleDelete} variant="danger" leftIcon="trash" />
+ * When `loading` is true the button shows an activity indicator and is non-interactive; the button is also non-interactive when `disabled` is true.
+ *
+ * @param label - Button text label
+ * @param onPress - Callback executed when the button is pressed
+ * @param variant - Visual variant; e.g. `"primary" | "secondary" | "danger"` (controls background, border, and text colors)
+ * @param size - Button size; one of `"sm" | "md" | "lg"` (controls padding, font size, icon size, and corner radius)
+ * @param loading - Show a spinner in place of the label/icons and disable interaction while true
+ * @param disabled - Disable interaction and apply disabled styling when true
+ * @param leftIcon - Optional Ionicons glyph name to render at the start of the label
+ * @param rightIcon - Optional Ionicons glyph name to render at the end of the label
+ * @param fullWidth - Expand the button to fill available width when true
+ * @param style - Optional container style overrides
+ * @param textStyle - Optional text style overrides for the label
+ * @returns The rendered Button element
  */
 export function Button({
   label,

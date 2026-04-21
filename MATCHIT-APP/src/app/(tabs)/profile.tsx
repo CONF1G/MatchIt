@@ -14,7 +14,11 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 const C = COLORS;
 
-// ─── Stat pill ────────────────────────────────────────────────────────────────
+/**
+ * Displays a compact stat block showing a numeric value above a label.
+ *
+ * @returns A view containing the numeric stat value and its label.
+ */
 
 function StatPill({ value, label }: { value: number; label: string }) {
   return (
@@ -25,7 +29,14 @@ function StatPill({ value, label }: { value: number; label: string }) {
   );
 }
 
-// ─── Catalog card ─────────────────────────────────────────────────────────────
+/**
+ * Renders a pressable catalog card for a single catalog item.
+ *
+ * Displays the item's cover image (or an images icon if absent), a lock badge when the item is private, the title (single line), and the photo count. Pressing the card navigates to `/catalog/{item.id}`.
+ *
+ * @param item - Catalog object containing at least `id`, `title`, and optional `cover_url`, `is_private`, and `photos_count`
+ * @returns The rendered catalog card element
+ */
 
 function CatalogCard({ item }: { item: any }) {
   return (
@@ -56,7 +67,18 @@ function CatalogCard({ item }: { item: any }) {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Render the profile screen showing the current user's avatar, display info, stats,
+ * action buttons, and a two-column grid of their catalogs with pull-to-refresh.
+ *
+ * Renders an avatar (image or initials), display name, username, bio, three stat pills
+ * (Catalogs, Followers, Following), buttons for Friends and Sign out (with confirmation
+ * and loading state), a "My Catalogs" header with a New button, and a FlatList of
+ * catalog cards that supports refresh and an empty-state CTA.
+ *
+ * @returns A React element containing the complete profile UI including header, actions,
+ * and a two-column catalog listing.
+ */
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();

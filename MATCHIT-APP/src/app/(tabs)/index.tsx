@@ -5,6 +5,14 @@ import { FlashList } from "@shopify/flash-list";
 import FeedItem from '../../components/feed/FeedItem';
 import posts from '../../../assets/data/posts';
 
+/**
+ * Render the Home screen as a responsive grid of posts.
+ *
+ * Uses seven columns on web and two columns on native platforms, memoizes the posts
+ * source, and lays out items in a FlashList with consistent horizontal column gaps.
+ *
+ * @returns JSX element for the Home screen containing the responsive post grid
+ */
 export default function HomeScreen() {
   const numColumns = Platform.OS === 'web' ? 7 : 2;
   const memoizedPosts = useMemo(() => posts, []);

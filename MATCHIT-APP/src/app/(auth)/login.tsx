@@ -21,6 +21,11 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 type FormErrors = { email?: string; password?: string };
 
+/**
+ * Builds a FormErrors object for the provided email and password with field-level error messages in Romanian.
+ *
+ * @returns A `FormErrors` object with `email` and/or `password` keys set to their corresponding error messages; an empty object if both fields are valid.
+ */
 function validate(email: string, password: string): FormErrors {
   const e: FormErrors = {};
   if (!email.trim())            e.email    = "Emailul este obligatoriu";
@@ -30,7 +35,15 @@ function validate(email: string, password: string): FormErrors {
   return e;
 }
 
-// ─── Ecran ────────────────────────────────────────────────────────────────────
+/**
+ * Renders the email/password login screen with client-side validation and auth integration.
+ *
+ * Displays inputs for email and password, per-field validation errors, and a global auth error banner.
+ * Submits credentials to the auth hook, shows a loading state while signing in, and provides links
+ * for forgot-password and register flows.
+ *
+ * @returns The rendered login screen element
+ */
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();

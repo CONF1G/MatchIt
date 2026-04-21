@@ -20,6 +20,18 @@ type Params = {
   matchedBy?:  string; // comma-separated display names
 };
 
+/**
+ * Renders a full-screen “It’s a Match!” modal with an animated photo card, heart badge, match text, optional matched player chips, and a dismiss button.
+ *
+ * Reads `photoUri`, `photoTitle`, and `matchedBy` from local search params:
+ * - `photoUri` — image URL to show on the card; when absent a fallback icon is shown.
+ * - `photoTitle` — optional title displayed beneath the match label.
+ * - `matchedBy` — comma-separated names parsed into player chips.
+ *
+ * On mount the component performs entrance and reveal animations and schedules an automatic dismissal after 3 seconds; tapping the "Continue Swiping" button also dismisses the modal.
+ *
+ * @returns The React element tree for the match animation modal.
+ */
 export default function MatchAnimationModal() {
   const insets = useSafeAreaInsets();
   const { photoUri, photoTitle, matchedBy } = useLocalSearchParams<Params>();

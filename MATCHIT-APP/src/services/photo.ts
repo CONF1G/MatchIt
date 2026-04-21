@@ -50,13 +50,15 @@ export type ServiceResponse<T> = { data: T | null; error: string | null };
 // ─── CREATE ───────────────────────────────────────────────────────────────────
 
 /**
- * Uploadează o poză și o salvează în DB cu titlu și descriere.
- * @param localUri    URI-ul local al imaginii (de la ImagePicker)
- * @param catalogId   Catalogul în care se adaugă
- * @param title       Titlul pozei (opțional)
- * @param description Descrierea pozei (opțional)
- * @param tags        Tag-uri manuale (opțional)
- * @param sortOrder   Ordinea în catalog
+ * Uploads an image to storage and creates a photo record in the database, optionally attaching manual tags.
+ *
+ * @param params.localUri - Local file URI of the image (for example, from ImagePicker)
+ * @param params.catalogId - ID of the catalog where the photo will be added
+ * @param params.title - Optional title; empty or whitespace-only values are stored as null
+ * @param params.description - Optional description; empty or whitespace-only values are stored as null
+ * @param params.tags - Optional array of manual tags to attach to the photo
+ * @param params.sortOrder - Optional sort order within the catalog (defaults to 0)
+ * @returns ServiceResponse containing the created Photo in `data` on success; `data` is null and `error` contains a message on failure
  */
 export async function createPhoto(params: {
   localUri:    string;
@@ -112,7 +114,9 @@ export async function createPhoto(params: {
 // ─── READ ─────────────────────────────────────────────────────────────────────
 
 /**
- * Aduce o poză cu toate detaliile: tags, profil uploader, număr likes.
+ * Fetches a photo by id including the uploader's profile, tags, and likes.
+ *
+ * @returns A ServiceResponse whose `data` is the photo (with `profiles`, `photo_tags`, and `photo_likes` joined) when successful; `data` is `null` and `error` contains an error message otherwise.
  */
 export async function fetchPhotoById(id: string): Promise<ServiceResponse<Photo>> {
   const { data, error } = await supabase
@@ -131,7 +135,10 @@ export async function fetchPhotoById(id: string): Promise<ServiceResponse<Photo>
 }
 
 /**
- * Aduce toate pozele unui catalog, ordonate după sort_order.
+ * Fetches all photos in a catalog ordered by ascending `sort_order`.
+ *
+ * @param catalogId - The catalog's identifier to filter photos by
+ * @returns The list of `Photo` records for the catalog ordered by `sort_order`; an empty array if none are found
  */
 export async function fetchPhotosByCatalog(
   catalogId: string
@@ -153,8 +160,11 @@ export async function fetchPhotosByCatalog(
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
 
 /**
- * Actualizează titlul și/sau descrierea unei poze.
- * RLS asigură că doar owner-ul poate face update.
+ * Update a photo's title and/or description.
+ *
+ * Title and description are trimmed; an empty string is stored as `null`. Row-Level Security (RLS) enforces permission checks.
+ *
+ * @returns The updated `Photo` on success, `null` if the update failed.
  */
 export async function updatePhoto(
   id: string,
@@ -177,7 +187,10 @@ export async function updatePhoto(
 }
 
 /**
- * Actualizează ordinea mai multor poze simultan (drag & drop reorder).
+ * Set `sort_order` for multiple photos in a single batch operation.
+ *
+ * @param updates - Array of objects containing `id` and the new `sort_order` for each photo
+ * @returns `data: null` and `error` set to the database error message if the upsert failed, `error: null` on success
  */
 export async function reorderPhotos(
   updates: Array<{ id: string; sort_order: number }>
@@ -194,8 +207,12 @@ export async function reorderPhotos(
 // ─── DELETE ───────────────────────────────────────────────────────────────────
 
 /**
- * Șterge o poză din DB și din Storage.
- * Ștergerea din DB va cascada la photo_tags, photo_likes, comments.
+ * Deletes a photo record and its stored files.
+ *
+ * Deletes the photo row from the database (DB-side cascade removes related `photo_tags`, `photo_likes`, and `comments`), then attempts best-effort deletion of the image and thumbnail files from storage.
+ *
+ * @param id - The photo's database id
+ * @returns An object where `data` is `null` and `error` is `null` on success; otherwise `data` is `null` and `error` contains the failure message.
  */
 export async function deletePhoto(id: string): Promise<ServiceResponse<null>> {
   // 1. Fetch calea din Storage înainte de delete
@@ -227,8 +244,17 @@ export async function deletePhoto(id: string): Promise<ServiceResponse<null>> {
 // ─── TAGS ─────────────────────────────────────────────────────────────────────
 
 /**
- * Adaugă tag-uri la o poză.
- * @param isAiGenerated true dacă vin de la AI, false dacă sunt manuale
+ * Add or update tags for a photo.
+ *
+ * Creates or updates tag records for the given photo. Tags are normalized to
+ * lowercase and trimmed; each tag can be marked as AI-generated and may include
+ * an optional per-tag confidence score.
+ *
+ * @param photoId - ID of the photo to attach tags to
+ * @param tags - Array of tag strings to add or update
+ * @param isAiGenerated - Whether the provided tags originate from an AI source
+ * @param confidences - Optional parallel array of confidence scores matching `tags` (index-aligned)
+ * @returns The inserted or updated `PhotoTag` rows
  */
 export async function addTagsToPhoto(
   photoId:       string,
@@ -253,7 +279,11 @@ export async function addTagsToPhoto(
 }
 
 /**
- * Șterge un tag specific de pe o poză.
+ * Deletes a specific tag from a photo.
+ *
+ * @param photoId - ID of the photo
+ * @param tag - Tag to remove; the tag is lowercased before matching
+ * @returns An object with `data: null` and `error: null` on success, or `data: null` and `error` set to the database error message on failure
  */
 export async function removeTagFromPhoto(
   photoId: string,
@@ -272,8 +302,10 @@ export async function removeTagFromPhoto(
 // ─── LIKES ────────────────────────────────────────────────────────────────────
 
 /**
- * Toggle like pe o poză folosind RPC-ul din DB.
- * RPC-ul gestionează atomic insert/delete și returnează noul status.
+ * Toggle the current user's like status for a photo.
+ *
+ * @param photoId - ID of the photo to toggle the like for
+ * @returns An object `{ isLiked: boolean }` where `isLiked` is `true` if the photo is liked after the toggle, `false` otherwise
  */
 export async function togglePhotoLike(
   photoId: string
@@ -286,7 +318,10 @@ export async function togglePhotoLike(
 }
 
 /**
- * Verifică dacă userul curent a dat like la o poză.
+ * Determine whether the current authenticated user has liked the specified photo.
+ *
+ * @param photoId - The ID of the photo to check
+ * @returns `isLiked` set to `true` if the current user has liked the photo, `false` otherwise.
  */
 export async function checkPhotoLike(
   photoId: string
@@ -307,7 +342,10 @@ export async function checkPhotoLike(
 // ─── COMMENTS ─────────────────────────────────────────────────────────────────
 
 /**
- * Aduce comentariile unei poze, ordonate cronologic.
+ * Fetches comments for a photo ordered by creation time (oldest first).
+ *
+ * @param photoId - ID of the photo whose comments to fetch
+ * @returns An array of `Comment` objects ordered by `created_at` (empty array if there are no comments)
  */
 export async function fetchComments(
   photoId: string
@@ -323,7 +361,13 @@ export async function fetchComments(
 }
 
 /**
- * Adaugă un comentariu la o poză.
+ * Insert a new comment for a photo authored by the current user.
+ *
+ * Requires an authenticated user; returns an authentication error when no user is present.
+ *
+ * @param photoId - The ID of the photo to attach the comment to
+ * @param content - The comment text; leading and trailing whitespace will be trimmed
+ * @returns The created `Comment` including the author's `profiles` (username and avatar_url), or `null` if an error occurred
  */
 export async function addComment(
   photoId: string,
@@ -343,7 +387,10 @@ export async function addComment(
 }
 
 /**
- * Șterge un comentariu (doar autorul îl poate șterge — RLS).
+ * Delete a comment by its id; row-level security enforces who can perform the deletion.
+ *
+ * @param id - The id of the comment to delete
+ * @returns A ServiceResponse with `data` set to `null`; `error` contains the error message if deletion failed, or `null` on success
  */
 export async function deleteComment(id: string): Promise<ServiceResponse<null>> {
   const { error } = await supabase

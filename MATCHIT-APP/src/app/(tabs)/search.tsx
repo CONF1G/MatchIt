@@ -43,7 +43,15 @@ type UserResult = {
 
 type SearchTab = "catalogs" | "users";
 
-// ─── Sub-componente ───────────────────────────────────────────────────────────
+/**
+ * Renders a pressable card representing a catalog search result.
+ *
+ * The card shows the cover image (or an image icon fallback), title, author username,
+ * photo count, and likes count, and navigates to `/catalog/{id}` when pressed.
+ *
+ * @param item - The `CatalogResult` to display (provides `id`, `title`, `cover_url`, `profiles?.username`, `photos_count`, and `likes_count`)
+ * @returns A pressable card element representing the catalog result
+ */
 
 function CatalogResultCard({ item }: { item: CatalogResult }) {
   return (
@@ -83,6 +91,14 @@ function CatalogResultCard({ item }: { item: CatalogResult }) {
   );
 }
 
+/**
+ * Renders a pressable user search result card that navigates to the user's profile.
+ *
+ * Displays the user's avatar (or initial fallback), display name (or username), username handle, number of catalogs, and follower count. Pressing the card navigates to `/user/{id}`.
+ *
+ * @param item - The user result data to render (id, username, optional display_name and avatar_url, followers_count, catalogs_count)
+ * @returns The JSX element for the user result card
+ */
 function UserResultCard({ item }: { item: UserResult }) {
   return (
     <Pressable
@@ -129,7 +145,13 @@ const TRENDING_TAGS = [
   "nature", "urban", "fashion", "sport",
 ];
 
-// ─── Ecranul principal ────────────────────────────────────────────────────────
+/**
+ * Render the Search screen UI that allows searching catalogs and users with debounced queries, tabbed results, and trending tags.
+ *
+ * Manages local state for the query, active tab, result lists, loading, and a searched flag; runs debounced Supabase queries to populate catalog and user results and displays a loading indicator, results list (with empty state), or a trending tags discovery view.
+ *
+ * @returns A React element representing the Search screen.
+ */
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();

@@ -15,6 +15,14 @@ import { Input }    from "../../components/common/Input";
 import { Button }   from "../../components/common/Button";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
+/**
+ * Screen for requesting a password reset by submitting an email address.
+ *
+ * Validates that the email contains "@", calls `resetPassword(email)` from the auth hook,
+ * and displays either a success confirmation or an error banner based on the result.
+ *
+ * @returns A JSX element representing the forgot-password screen.
+ */
 export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const { resetPassword } = useAuth();
