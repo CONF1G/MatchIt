@@ -3,10 +3,11 @@ import { supabase } from './supabase';
 
 export const createMatch = async (mode: string) => {
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("User must be authenticated");  
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   const { data, error } = await supabase
     .from('matches')
-    .insert({ host_id: user!.id, mode, status: 'waiting', invite_code: inviteCode })
+    .insert({ host_id: user.id, mode, status: 'waiting', invite_code: inviteCode }) 
     .select()
     .single();
   if (error) throw error;
@@ -16,9 +17,10 @@ export const createMatch = async (mode: string) => {
 
 export const joinMatch = async (matchId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("User must be authenticated"); 
   const { error } = await supabase
     .from('match_players')
-    .upsert({ match_id: matchId, user_id: user!.id }, { onConflict: 'match_id,user_id' });
+    .upsert({ match_id: matchId, user_id: user.id }, { onConflict: 'match_id,user_id' });
   if (error) throw error;
 };
 

@@ -16,15 +16,17 @@ export default function HomeScreen() {
         data={memoizedPosts}
         numColumns={numColumns}
         keyExtractor={(item: any) => item.id.toString()}
-        renderItem={({ item, index }) => (
-          <View style={[
-            styles.itemWrapper,
-            // Apply different padding based on which column the item is in
-            index % 2 === 0 ? { paddingRight: COLUMN_GAP / 2 } : { paddingLeft: COLUMN_GAP / 2 }
-          ]}>
-            <FeedItem feeditem={item} />
-          </View>
-        )}
+        renderItem={({ item, index }) => (  
+          <View style={[  
+            styles.itemWrapper,  
+            {  
+              paddingLeft: (index % numColumns) === 0 ? 0 : COLUMN_GAP / 2,  
+              paddingRight: (index % numColumns) === (numColumns - 1) ? 0 : COLUMN_GAP / 2,  
+            }  
+          ]}>  
+            <FeedItem feeditem={item} />  
+          </View>  
+        )}  
         contentContainerStyle={styles.listPadding}
       />
     </View>

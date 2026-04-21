@@ -184,7 +184,7 @@ export default function SearchScreen() {
         .limit(20),
     ]);
 
-    if (!catalogsRes.error) setCatalogResults(catalogsRes.data as CatalogResult[]);
+    if (!catalogsRes.error) setCatalogResults(catalogsRes.data as unknown as CatalogResult[]);
     if (!usersRes.error) setUserResults(usersRes.data as UserResult[]);
 
     setLoading(false);
@@ -265,7 +265,7 @@ export default function SearchScreen() {
 
       {/* Rezultate */}
       {searched && !loading ? (
-        <FlatList
+        <FlatList<CatalogResult | UserResult>
           data={activeTab === "catalogs" ? catalogResults : userResults}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}

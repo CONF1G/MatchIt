@@ -4,16 +4,20 @@
 
 import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 import { ENV } from "../config/env";
 
 // Dacă ENV.SUPABASE_URL sau ENV.SUPABASE_ANON_KEY lipsesc,
 // env.ts aruncă o eroare clară înainte să ajungem aici.
+if (!ENV.SUPABASE_URL || !ENV.SUPABASE_ANON_KEY) {
+  console.error("Missing Supabase Env Variables. Check your .env file!");
+}
 export const supabase = createClient(ENV.SUPABASE_URL, ENV.SUPABASE_ANON_KEY, {
   auth: {
     storage:         AsyncStorage, // persistă sesiunea între reporniri
     autoRefreshToken: true,
     persistSession:  true,
-    detectSessionInUrl: false,     // dezactivat pentru React Native
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });

@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Image, View, TextInput } from "react-native";
-import { AntDesign, Feather } from "@expo/vector-icons";
+import { AntDesign } from "@expo/vector-icons";
 import LogoImg from "../../../assets/logo.png";
 
 export default function TabLayout() { 
@@ -12,7 +12,7 @@ export default function TabLayout() {
                 tabBarShowLabel: false,
                 tabBarIcon: ({ color }) => <AntDesign name="home" size={24} color={color} />
             }} />
-            // on enter open search screen 
+             {/* on enter open search screen */}  
 
             <Tabs.Screen name="search" options={{
                 title: "Search",
