@@ -19,7 +19,15 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 // ─── Sub-componente ───────────────────────────────────────────────────────────
 
-/** Un tag afișat ca pill — cu buton de remove dacă isOwner */
+/**
+ * Render a tag pill displaying `#tag` and an optional remove control.
+ *
+ * Displays the tag text prefixed with `#`. If `isOwner` is true, shows a small close button that invokes `onRemove` when pressed.
+ *
+ * @param tag - The tag text to display (without `#`)
+ * @param isOwner - Whether the current user owns the photo and can remove the tag
+ * @param onRemove - Callback invoked when the remove button is pressed
+ */
 function TagPill({
   tag, isOwner, onRemove,
 }: { tag: string; isOwner: boolean; onRemove: () => void }) {
@@ -35,7 +43,13 @@ function TagPill({
   );
 }
 
-/** Rândul unui comentariu */
+/**
+ * Render a single comment row showing an avatar initial, `@username`, comment text, and an optional delete control.
+ *
+ * @param comment - Comment object containing `id`, `content`, and an optional `profiles.username` used for display and avatar initial
+ * @param canDelete - When true, shows a delete button for the comment
+ * @param onDelete - Callback invoked when the delete button is pressed
+ */
 function CommentRow({
   comment, canDelete, onDelete,
 }: {
@@ -65,7 +79,13 @@ function CommentRow({
   );
 }
 
-// ─── Ecranul principal ────────────────────────────────────────────────────────
+/**
+ * Render the photo detail screen that supports viewing and editing the photo, managing tags, liking, and commenting.
+ *
+ * Displays loading and error states, an image preview, social actions (like, comment), a view mode and an owner-only edit mode (title/description editing, save/cancel, delete with confirmation), tag listing and owner-only tag addition/removal, and a comments list with posting and deletion controls.
+ *
+ * @returns A React element representing the photo detail screen.
+ */
 
 export default function PhotoScreen() {
   const insets = useSafeAreaInsets();

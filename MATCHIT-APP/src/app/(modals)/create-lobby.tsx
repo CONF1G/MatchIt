@@ -28,7 +28,16 @@ const MODES: Array<{ id: LobbyMode; label: string; icon: string; desc: string }>
   { id: "tournament",   label: "Tournament",   icon: "trophy",       desc: "Eliminare directă, bracket style" },
 ];
 
-// ─── Componenta ───────────────────────────────────────────────────────────────
+/**
+ * Renders a modal UI for creating a new lobby and orchestrates the creation flow.
+ *
+ * Loads the current user's catalogs on mount for optional catalog selection. While submitting,
+ * user interactions are disabled. When submitted, the component creates a lobby, attempts to
+ * add the host as a participant, rolls back the created lobby if joining fails, surfaces errors
+ * via alerts, and navigates to the newly created lobby on success.
+ *
+ * @returns The React element for the "Create Lobby" modal screen.
+ */
 
 export default function CreateLobbyModal() {
   const insets = useSafeAreaInsets();

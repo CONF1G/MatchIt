@@ -51,7 +51,13 @@ const CREATE_OPTIONS: CreateOption[] = [
   },
 ];
 
-// ─── Card opțiune ─────────────────────────────────────────────────────────────
+/**
+ * Renders an animated, pressable card for a single create option.
+ *
+ * @param option - The create option data (icon, title, subtitle, route, accentColor) to display in the card
+ * @param index - Zero-based index used to stagger the entry animation delay
+ * @returns The JSX element for the create option card
+ */
 
 function CreateOptionCard({
   option,
@@ -101,7 +107,13 @@ function CreateOptionCard({
   );
 }
 
-// ─── Ecranul principal ────────────────────────────────────────────────────────
+/**
+ * Screen component that presents creation choices and quick navigation actions.
+ *
+ * Renders an animated header, a list of create-option cards (each navigates to its configured route), a separator row, and two quick-action buttons for inviting friends or joining with a code. The layout respects safe-area insets at the top.
+ *
+ * @returns A React element rendering the Create hub screen
+ */
 
 export default function CreateScreen() {
   const insets = useSafeAreaInsets();

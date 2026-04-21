@@ -9,6 +9,14 @@ import { supabase } from "./supabase";
 import { Session, User } from "@supabase/supabase-js";
 
 
+/**
+ * Checks whether a username is available in the `profiles` table.
+ *
+ * The input `username` is normalized by trimming whitespace and converting to lowercase before lookup.
+ *
+ * @param username - The username to check (will be normalized with `trim()` and `toLowerCase()`)
+ * @returns `true` if the normalized username does not exist in the `profiles` table, `false` otherwise.
+ */
 export async function isUsernameAvailable(username: string): Promise<boolean> {
   const { data } = await supabase
     .from("profiles")
@@ -29,16 +37,14 @@ export type AuthResponse<T = { user: User; session: Session }> = {
 // ─── EMAIL / PAROLĂ ───────────────────────────────────────────────────────────
 
 /**
- * Înregistrare cu email și parolă.
- * Trigger-ul `handle_new_user` din DB creează profilul automat.
+ * Create a new user account using an email and password.
  *
- * @param email     Adresa de email
- * @param password  Parola (minim 6 caractere)
- * @param username  Username dorit (trimis în metadata → folosit de trigger)
+ * A database trigger (`handle_new_user`) will create the corresponding profile using the provided metadata.
  *
- * @example
- * const { data, error } = await signUp("ion@exemplu.ro", "parola123", "ion_dev");
- * if (error) Alert.alert("Eroare", error);
+ * @param email - Email address; will be normalized with `trim()` and `toLowerCase()`
+ * @param password - Password (minimum 6 characters)
+ * @param username - Desired username; will be normalized and stored in the user's metadata (`username` and `full_name`) for the profile trigger
+ * @returns An AuthResponse whose `data` contains `{ user, session }` on success, or `null` with an error message in `error`
  */
 export async function signUp(
   email:    string,
@@ -68,11 +74,9 @@ export async function signUp(
 }
 
 /**
- * Autentificare cu email și parolă.
+ * Sign in using an email and password.
  *
- * @example
- * const { data, error } = await signIn("ion@exemplu.ro", "parola123");
- * if (error) Alert.alert("Email sau parolă incorectă");
+ * @returns An AuthResponse where `data` contains `{ user, session }` on success and `null` on failure; `error` contains an error message or `null`.
  */
 export async function signIn(
   email:    string,
@@ -98,7 +102,9 @@ export async function signIn(
 }
 
 /**
- * Deconectare — șterge sesiunea locală și din Supabase.
+ * Signs the current user out by ending the local session and the Supabase session.
+ *
+ * @returns An AuthResponse with `data` set to `null` and `error` containing the Supabase error message if sign-out failed, or `null` on success.
  */
 export async function signOut(): Promise<AuthResponse<null>> {
   const { error } = await supabase.auth.signOut();
@@ -109,14 +115,10 @@ export async function signOut(): Promise<AuthResponse<null>> {
 // ─── RESETARE PAROLĂ ──────────────────────────────────────────────────────────
 
 /**
- * Trimite email de resetare parolă.
- * Utilizatorul va primi un link care deschide aplicația prin deep link.
+ * Send a password reset email that includes a deep link to open the app.
  *
- * @param email Adresa de email asociată contului
- *
- * @example
- * const { error } = await sendPasswordReset("ion@exemplu.ro");
- * if (!error) Alert.alert("Email trimis!", "Verifică inbox-ul.");
+ * @param email - The account email address
+ * @returns An object with `data: null` and `error` set to the error message if sending failed, or `error: null` on success
  */
 export async function sendPasswordReset(
   email: string
@@ -135,8 +137,10 @@ export async function sendPasswordReset(
 }
 
 /**
- * Actualizează parola după ce userul a accesat link-ul din email.
- * Apelat pe ecranul reset-password după ce sesiunea temporară e activă.
+ * Update the authenticated user's password after the temporary session from a password-reset email is active.
+ *
+ * @param newPassword - The new password to set for the current user
+ * @returns An AuthResponse with `data` set to `null`; `error` contains the error message if the update failed, or `null` on success
  */
 export async function updatePassword(
   newPassword: string
@@ -152,8 +156,9 @@ export async function updatePassword(
 // ─── SESIUNE CURENTĂ ─────────────────────────────────────────────────────────
 
 /**
- * Aduce sesiunea curentă din AsyncStorage (persistată local).
- * Folosit la pornirea aplicației pentru a restaura sesiunea.
+ * Retrieves the locally persisted authentication session.
+ *
+ * @returns The current `Session` if one is stored, `null` otherwise.
  */
 export async function getCurrentSession(): Promise<Session | null> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -161,7 +166,9 @@ export async function getCurrentSession(): Promise<Session | null> {
 }
 
 /**
- * Aduce utilizatorul curent autentificat.
+ * Retrieve the currently authenticated user.
+ *
+ * @returns The authenticated `User`, or `null` if no user is signed in.
  */
 export async function getCurrentUser(): Promise<User | null> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -182,10 +189,10 @@ export async function getCurrentUser(): Promise<User | null> {
 // ─── ACTUALIZARE PROFIL ───────────────────────────────────────────────────────
 
 /**
- * Actualizează câmpurile profilului utilizatorului curent.
+ * Updates the current authenticated user's profile fields.
  *
- * @example
- * await updateProfile({ display_name: "Ion Dev", bio: "Salut!" });
+ * @param updates - Partial profile fields to update; may include `username`, `display_name`, `avatar_url`, and `bio`
+ * @returns An AuthResponse with `data` set to `null` and `error` containing an error message if the update failed, or `null` on success
  */
 export async function updateProfile(updates: {
   username?:     string;
@@ -206,14 +213,10 @@ export async function updateProfile(updates: {
 }
 
 /**
- * Listener pentru schimbările de autentificare.
- * Returneaza funcția de cleanup — apeleaz-o în useEffect return.
+ * Subscribe to authentication state changes and invoke `callback` with the updated session.
  *
- * @example
- * useEffect(() => {
- *   const unsub = onAuthStateChange((session) => setSession(session));
- *   return unsub;
- * }, []);
+ * @param callback - Called with the current `Session` or `null` whenever the auth state changes
+ * @returns A function that unsubscribes the listener when called
  */
 export function onAuthStateChange(
   callback: (session: Session | null) => void

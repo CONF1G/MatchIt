@@ -26,6 +26,13 @@ type Friend = {
   avatar_url:   string | null;
 };
 
+/**
+ * Modal screen that displays an invite code (if available) and a searchable list of the user's followed friends with actions to copy or share the invite.
+ *
+ * Shows a card with the invite code and copy/share buttons when a code exists, or an informational banner when none exists. Loads up to 50 followed users, supports client-side filtering by username or display name, displays loading and empty states, and lets the user share a deep link or invite an individual friend via the system share sheet.
+ *
+ * @returns The JSX element for the Invite Friends modal screen.
+ */
 export default function InviteFriendsModal() {
   const insets = useSafeAreaInsets();
   const { matchId, inviteCode } = useLocalSearchParams<Params>();

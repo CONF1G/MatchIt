@@ -48,7 +48,15 @@ type Params = {
   guestName?: string;
 };
 
-// ─── MatchOverlay ─────────────────────────────────────────────────────────────
+/**
+ * Displays a full-screen "It's a Match!" overlay for a photo with animated entrance and automatic dismissal.
+ *
+ * The overlay shows the photo, an optional title, and a "Keep Swiping" button that also dismisses the overlay. The overlay automatically calls `onDismiss` after 2800 milliseconds.
+ *
+ * @param photo - The matched photo to display (image_url and optional title are used).
+ * @param onDismiss - Callback invoked when the overlay is dismissed (button press or automatic timeout).
+ * @returns A React element rendering the animated match overlay.
+ */
 
 function MatchOverlay({ photo, onDismiss }: { photo: PhotoCard; onDismiss: () => void }) {
   const scale = useRef(new Animated.Value(0.7)).current;
@@ -79,7 +87,17 @@ function MatchOverlay({ photo, onDismiss }: { photo: PhotoCard; onDismiss: () =>
   );
 }
 
-// ─── SwipeCard ────────────────────────────────────────────────────────────────
+/**
+ * Renders a photo card for the swipe deck, displaying either a static stacked card or a draggable top card.
+ *
+ * When `isTop` is true the card is draggable and shows animated "LIKE" / "NOPE" badges while being swiped; releasing beyond thresholds will animate the card off-screen and invoke `onSwipe` with the chosen action.
+ *
+ * @param photo - Photo data to display (image_url and optional title)
+ * @param isTop - Whether this card is the active, draggable top card in the stack
+ * @param stackIndex - Zero-based index of the card within the visible stack (0 is top); used to compute scale/offset for non-top cards
+ * @param onSwipe - Callback invoked with the swipe action (`"like"` | `"dislike"` | `"super_like"`) when the top card is swiped away
+ * @returns The rendered card element; draggable behavior and swipe callbacks are active only when `isTop` is true
+ */
 
 function SwipeCard({
   photo,
@@ -184,7 +202,15 @@ function SwipeCard({
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Screen component that presents a swipeable deck of photos for a realtime matching session.
+ *
+ * Renders a stacked, interactive card deck with like/dislike/super-like actions, displays progress and participant counts, and shows a match overlay when a photo is matched.
+ *
+ * The component loads photos for the provided `matchId`, tracks and broadcasts player swipes over a Supabase realtime channel, updates presence-based player counts, and navigates to the results screen after the deck is completed.
+ *
+ * @returns The JSX element for the swipe screen.
+ */
 
 export default function SwipeScreen() {
   const insets = useSafeAreaInsets();

@@ -20,6 +20,16 @@ type Params = {
   guestName?: string;
 };
 
+/**
+ * Display the lobby waiting screen and manage realtime presence for a match.
+ *
+ * Subscribes to Supabase realtime presence for match participants, tracks the
+ * current user or guest in presence, navigates to the swipe screen when the
+ * host broadcasts a start, and provides a leave flow that unsubscribes and
+ * clears guest session when applicable.
+ *
+ * @returns The rendered React element for the waiting-room UI that shows match info, participants, and controls to leave.
+ */
 export default function LobbyWaitingScreen() {
   const insets  = useSafeAreaInsets();
   const params  = useLocalSearchParams<Params>();

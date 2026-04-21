@@ -40,7 +40,14 @@ const CATEGORIES: Category[] = [
   { id: "books",        label: "Cărți",           icon: "book",           color: "#98FB98" },
 ];
 
-// ─── Card categorie ───────────────────────────────────────────────────────────
+/**
+ * Render a selectable category tile with icon, label, and an optional checkmark overlay.
+ *
+ * @param category - Category data (`id`, `label`, `icon`, `color`) used to render the tile
+ * @param selected - Whether the category is currently selected (applies selected styling and checkmark)
+ * @param onPress - Callback invoked when the tile is pressed
+ * @returns The category card element to display in the selection grid
+ */
 
 function CategoryCard({
   category, selected, onPress,
@@ -74,7 +81,15 @@ function CategoryCard({
   );
 }
 
-// ─── Ecran ────────────────────────────────────────────────────────────────────
+/**
+ * Renders the onboarding screen where users select interest categories and continue or skip.
+ *
+ * Displays a selectable grid of predefined categories, a selection counter, a "Sari" (skip)
+ * action, and a footer button that saves the chosen interests and marks onboarding as completed
+ * before navigating to the main tabs.
+ *
+ * @returns The onboarding screen React element.
+ */
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();

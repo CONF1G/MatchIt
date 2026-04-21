@@ -45,13 +45,14 @@ type UsePhotoReturn = {
 // ─── Hook-ul ──────────────────────────────────────────────────────────────────
 
 /**
- * Hook complet pentru o poză individuală.
- * Gestionează fetch, editare, ștergere, like și comentarii.
+ * Manages client-side state and actions for a single photo (fetching, edits, deletion, likes, comments, and tags).
  *
- * @param photoId UUID-ul pozei
+ * Provides state (photo, comments, isLiked, isOwner), loading/error flags, and action handlers for refreshing, saving,
+ * removing, toggling like, posting/removing comments, and adding/removing tags.
  *
- * @example
- * const { photo, save, remove, like, isOwner } = usePhoto(id);
+ * @param photoId - The UUID of the photo to manage
+ * @returns An object containing photo state, loading/error flags, and action functions (`refresh`, `save`, `remove`, `like`,
+ * `postComment`, `removeComment`, `addTags`, `removeTag`)
  */
 export function usePhoto(photoId: string): UsePhotoReturn {
   const { user } = useAuth();

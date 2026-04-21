@@ -53,7 +53,30 @@ type UseAuthReturn = {
   refreshProfile:   () => Promise<void>;
 };
 
-// ─── Hook-ul ──────────────────────────────────────────────────────────────────
+/**
+ * Centralizes authentication state and actions for the app and exposes them to components.
+ *
+ * Provides current auth state (user, profile, session, loading flags, and authError) and action callbacks
+ * for signing in, signing up, signing out, password reset/change, profile updates, username checks,
+ * and error management.
+ *
+ * @returns An object containing:
+ * - `user`: the authenticated `User` or `null`
+ * - `profile`: the app `Profile` for the current user or `null`
+ * - `session`: the current `Session` or `null`
+ * - `loading`: `true` while the initial session is being loaded, `false` afterwards
+ * - `signingIn`, `signingUp`, `signingOut`, `updatingProfile`: operation-specific boolean flags
+ * - `authError`: an error message string or `null`
+ * - `signIn(email, password)`: attempts sign-in, returns `true` on success, `false` on failure
+ * - `signUp(email, password, username)`: attempts sign-up, returns `true` on success, `false` on failure
+ * - `signOut()`: signs the current user out
+ * - `resetPassword(email)`: sends a password reset, returns `true` on success, `false` on failure
+ * - `changePassword(newPassword)`: changes the current user's password, returns `true` on success, `false` on failure
+ * - `updateProfile(updates)`: updates the current user's profile and local profile state, returns `true` on success, `false` on failure
+ * - `checkUsername(username)`: returns `true` if the username is available, `false` otherwise
+ * - `clearError()`: clears the current `authError`
+ * - `refreshProfile()`: re-fetches the profile for the current user
+ */
 
 export function useAuth(): UseAuthReturn {
   const [user,    setUser]    = useState<User | null>(null);

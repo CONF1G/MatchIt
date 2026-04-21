@@ -28,6 +28,13 @@ type MatchedPhoto = {
   likedBy:   string[];
 };
 
+/**
+ * Displays the "Match Complete" results screen for a given match id, showing participating players and a grid of matched photos.
+ *
+ * The component shows a loading state while it attempts to collect realtime match results and presence; if no broadcasts are available it falls back to loading recent photos from the match's catalog. It also provides an exit action that marks the match finished and navigates the user (with a guest-specific flow when applicable).
+ *
+ * @returns The results screen UI as a React element.
+ */
 export default function ResultsScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<Params>();
@@ -253,7 +260,13 @@ export default function ResultsScreen() {
   );
 }
 
-// ─── MatchCard ─────────────────────────────────────────────────────────────────
+/**
+ * Renders a single matched photo tile with an entrance animation, like badge, and optional title overlay.
+ *
+ * @param photo - Matched photo data; used for the image (`image_url`), optional `title`, and `likedBy` count.
+ * @param index - Zero-based position of the card in the list; used to stagger the entrance animation delay.
+ * @returns The rendered match card element.
+ */
 
 function MatchCard({ photo, index }: { photo: MatchedPhoto; index: number }) {
   const anim = useRef(new Animated.Value(0)).current;

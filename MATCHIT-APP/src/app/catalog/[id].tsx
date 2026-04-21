@@ -21,7 +21,16 @@ type Photo = {
   title?:    string | null;
 };
 
-// ─── Photo tile ───────────────────────────────────────────────────────────────
+/**
+ * Render a pressable photo tile that navigates to the photo detail and, if the caller is the owner, offers deletion.
+ *
+ * Renders the photo image and an optional bottom overlay with the photo's title. Tap navigates to `/photo/{photo.id}`. Long-press shows a confirmation alert and calls `onDelete` with the photo id when deletion is confirmed (only when `isOwner` is true).
+ *
+ * @param photo - Photo object to display; its `image_url`, `id`, and optional `title` are used.
+ * @param isOwner - Whether the current user is the owner; enables the long-press delete flow when true.
+ * @param onDelete - Called with the photo `id` when the owner confirms deletion.
+ * @returns The rendered photo tile element.
+ */
 
 function PhotoTile({
   photo,
@@ -60,7 +69,13 @@ function PhotoTile({
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Displays a catalog detail screen with cover, metadata, owner info, and a grid of photos.
+ *
+ * Loads catalog metadata, photos, and the current user's like state; shows a loading spinner while fetching and a "not found" fallback when the catalog is missing. Provides actions for sharing the catalog, liking/unliking (requires authentication and is applied optimistically), and owner-only actions such as editing the catalog and adding or deleting photos. Supports pull-to-refresh on the photo grid and navigates to photo and user pages from the UI.
+ *
+ * @returns The rendered catalog screen React element.
+ */
 
 export default function CatalogScreen() {
   const insets = useSafeAreaInsets();

@@ -26,6 +26,15 @@ type FormErrors = {
   confirmPassword?: string;
 };
 
+/**
+ * Validate registration form fields and produce per-field error messages.
+ *
+ * @param email - The user's email address; must contain the "@" character.
+ * @param username - Desired username; must be at least 3 characters and match `^[a-z0-9_]+$`.
+ * @param password - Password value; must be at least 6 characters.
+ * @param confirmPassword - Confirmation of `password`; must be equal to `password`.
+ * @returns A `FormErrors` object mapping field names (`email`, `username`, `password`, `confirmPassword`) to their error message strings; returns an empty object when all fields are valid.
+ */
 function validateForm(
   email: string, username: string,
   password: string, confirmPassword: string
@@ -40,7 +49,13 @@ function validateForm(
   return e;
 }
 
-// ─── Ecran ────────────────────────────────────────────────────────────────────
+/**
+ * Registration screen component that renders and manages the new-account form.
+ *
+ * Manages email, username, password, and password-confirmation inputs with per-field validation and displays server-side auth errors. Performs a debounced username availability check and prevents submission when validation fails or the username is taken. On successful registration, shows a confirmation alert and navigates to the login route.
+ *
+ * @returns The JSX element for the registration screen.
+ */
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
