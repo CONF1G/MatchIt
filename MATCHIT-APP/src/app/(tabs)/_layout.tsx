@@ -3,6 +3,13 @@ import { Image, View, TextInput } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import LogoImg from "../../../assets/logo.png";
 
+/**
+ * Defines the app's bottom tab navigator with Home, Search, MatchLobby, Create, and Profile tabs.
+ *
+ * The Search tab includes a header-right search input UI; the MatchLobby tab uses the app logo as its tab icon and adjusts its opacity based on focus.
+ *
+ * @returns A configured `Tabs` navigator React element containing the app's tab screens.
+ */
 export default function TabLayout() { 
     return (
         <Tabs screenOptions={{ tabBarActiveTintColor: "black" }}>

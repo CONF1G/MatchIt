@@ -30,7 +30,14 @@ const MATCH_MODES = [
   { id: "tournament",  label: "Tournament",  icon: "trophy" as const, description: "Bracket elimination" },
 ];
 
-// ─── Sub-Components ───────────────────────────────────────────────────────────
+/**
+ * Render a single player's row containing an avatar/initials, optional host badge/label, and a status dot.
+ *
+ * @param player - Player record (expected to include `profiles.username`); falls back to `"Anonymous"` when missing.
+ * @param isHost - Whether the player is the match host; when true shows a host badge and a `HOST` label.
+ * @param index - Zero-based row index used to stagger the entrance animation delay.
+ * @returns The rendered React element for the player row.
+ */
 
 function PlayerRow({ player, isHost, index }: { player: any; isHost: boolean; index: number }) {
   const fadeAnim  = useState(new Animated.Value(0))[0];
@@ -61,6 +68,14 @@ function PlayerRow({ player, isHost, index }: { player: any; isHost: boolean; in
   );
 }
 
+/**
+ * Displays a selectable mode card showing an icon, label, and description.
+ *
+ * @param mode - Mode object containing `icon`, `label`, and `description` used to render the card
+ * @param selected - Whether the card is in the selected state (affects styling)
+ * @param onPress - Callback invoked when the card is pressed
+ * @returns The rendered touchable mode card element
+ */
 function ModeCard({ mode, selected, onPress }: { mode: typeof MATCH_MODES[0]; selected: boolean; onPress: () => void }) {
   return (
     <TouchableOpacity
@@ -75,7 +90,13 @@ function ModeCard({ mode, selected, onPress }: { mode: typeof MATCH_MODES[0]; se
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Displays the match lobby screen and manages the lobby lifecycle.
+ *
+ * Creates or joins a match from the `matchId` URL param (or creates a new match), loads and renders players and selectable match modes, subscribes to realtime player updates, exposes an invite share action, and lets the host start the match which transitions the match to in-progress and navigates to the swipe screen.
+ *
+ * @returns The rendered Match Lobby screen UI as a React element
+ */
 
 export default function MatchLobby() {
   const insets = useSafeAreaInsets();

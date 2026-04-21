@@ -5,6 +5,15 @@ import { FlashList } from "@shopify/flash-list";
 import FeedItem from '../../components/feed/FeedItem';
 import posts from '../../../assets/data/posts';
 
+/**
+ * Render a responsive, multi-column feed of posts using Shopify's `FlashList`.
+ *
+ * The grid uses 7 columns on web and 2 columns on other platforms, memoizes the posts
+ * dataset, and applies half-gap horizontal padding between interior columns while
+ * leaving the first and last column flush to the container.
+ *
+ * @returns The rendered HomeScreen component as a JSX element.
+ */
 export default function HomeScreen() {
   const numColumns = Platform.OS === 'web' ? 7 : 2;
   const memoizedPosts = useMemo(() => posts, []);

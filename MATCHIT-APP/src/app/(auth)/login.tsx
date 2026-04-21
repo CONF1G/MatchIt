@@ -21,6 +21,15 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 type FormErrors = { email?: string; password?: string };
 
+/**
+ * Validate an email and password and produce per-field error messages.
+ *
+ * Validation rules:
+ * - email: required (message "Emailul este obligatoriu") and must contain "@" (message "Email invalid").
+ * - password: required (message "Parola este obligatorie") and must be at least 6 characters (message "Minim 6 caractere").
+ *
+ * @returns An object mapping invalid fields to their error message (`email` and/or `password`); an empty object when both fields are valid.
+ */
 function validate(email: string, password: string): FormErrors {
   const e: FormErrors = {};
   if (!email.trim())            e.email    = "Emailul este obligatoriu";
@@ -30,7 +39,13 @@ function validate(email: string, password: string): FormErrors {
   return e;
 }
 
-// ─── Ecran ────────────────────────────────────────────────────────────────────
+/**
+ * Login screen component that renders and manages an email/password sign-in form.
+ *
+ * Manages local form state and validation, displays server/global authentication errors, and invokes the app auth flow to sign in; includes navigation links to forgot-password and register screens.
+ *
+ * @returns A React element representing the login screen UI.
+ */
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();

@@ -21,7 +21,14 @@ type Photo = {
   title?:    string | null;
 };
 
-// ─── Photo tile ───────────────────────────────────────────────────────────────
+/**
+ * Render a pressable photo tile that navigates to the photo's page and, for owners, allows confirming deletion.
+ *
+ * @param photo - Photo object to display (provides `image_url`, `id`, and optional `title`)
+ * @param isOwner - Whether the current user owns the photo; enables long-press delete confirmation when true
+ * @param onDelete - Callback invoked with the photo's `id` after the user confirms deletion
+ * @returns The rendered photo tile element
+ */
 
 function PhotoTile({
   photo,
@@ -60,7 +67,15 @@ function PhotoTile({
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Displays a catalog details screen with its cover, metadata, and a 3-column photo grid.
+ *
+ * Loads catalog data, photos, and the current user's like status; provides UI for navigating
+ * back, sharing, liking/unliking (requires auth), editing when owned, adding photos when owned,
+ * pull-to-refresh, and deleting photos (owner-only) with optimistic removal and server sync.
+ *
+ * @returns A JSX element rendering the catalog screen and its interactive controls.
+ */
 
 export default function CatalogScreen() {
   const insets = useSafeAreaInsets();

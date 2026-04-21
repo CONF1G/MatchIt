@@ -53,7 +53,15 @@ type UseAuthReturn = {
   refreshProfile:   () => Promise<void>;
 };
 
-// ─── Hook-ul ──────────────────────────────────────────────────────────────────
+/**
+ * Provides authentication state, profile loading, and action helpers backed by Supabase for React components.
+ *
+ * @returns An object containing:
+ * - `user`, `profile`, `session` — current auth entities
+ * - `loading`, `signingIn`, `signingUp`, `signingOut`, `updatingProfile` — loading/operation flags
+ * - `authError` — current authentication error message or `null`
+ * - action functions: `signIn`, `signUp`, `signOut`, `resetPassword`, `changePassword`, `updateProfile`, `checkUsername`, `clearError`, and `refreshProfile`
+ */
 
 export function useAuth(): UseAuthReturn {
   const [user,    setUser]    = useState<User | null>(null);

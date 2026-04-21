@@ -33,7 +33,13 @@ type FormErrors = {
   title?: string;
 };
 
-// ─── Componenta ───────────────────────────────────────────────────────────────
+/**
+ * Render a modal screen that lets the user create a new catalog with title, optional description, up to five tags, a privacy flag, and up to 20 attached photos.
+ *
+ * The component manages local form state, image selection, per-photo upload state, and the submission flow (create catalog, upload photos, insert photo rows, then navigate to the new catalog).
+ *
+ * @returns The React element for the create-catalog modal screen.
+ */
 
 export default function CreateCatalogModal() {
   const insets = useSafeAreaInsets();

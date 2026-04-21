@@ -14,7 +14,13 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 const C = COLORS;
 
-// ─── Stat pill ────────────────────────────────────────────────────────────────
+/**
+ * Renders a compact statistic pill displaying a numeric value above a label.
+ *
+ * @param value - The numeric value to display
+ * @param label - The text label shown beneath the value
+ * @returns A React element displaying the value and label styled as a stat pill
+ */
 
 function StatPill({ value, label }: { value: number; label: string }) {
   return (
@@ -25,7 +31,12 @@ function StatPill({ value, label }: { value: number; label: string }) {
   );
 }
 
-// ─── Catalog card ─────────────────────────────────────────────────────────────
+/**
+ * Renders a tappable catalog card showing a thumbnail (or fallback icon), title, and photo count; tapping navigates to the catalog's detail route.
+ *
+ * @param item - Catalog object containing `id`, optional `cover_url`, `is_private`, `title`, and optional `photos_count`
+ * @returns The catalog card element
+ */
 
 function CatalogCard({ item }: { item: any }) {
   return (
@@ -56,7 +67,16 @@ function CatalogCard({ item }: { item: any }) {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Renders the profile screen with user info, actions, and a grid of user catalogs.
+ *
+ * Displays the user's avatar or initials, name, optional username and bio, profile stats,
+ * and action buttons for viewing friends and signing out. Fetches and shows the user's
+ * catalogs in a two-column grid with pull-to-refresh, and presents an empty state and
+ * a "New" action to create a catalog.
+ *
+ * @returns The React element for the profile screen UI.
+ */
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();

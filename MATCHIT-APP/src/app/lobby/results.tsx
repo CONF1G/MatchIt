@@ -28,6 +28,16 @@ type MatchedPhoto = {
   likedBy:   string[];
 };
 
+/**
+ * Screen that displays match results for a given `matchId`, including participating players and matched photos.
+ *
+ * Collects recent `match_found` broadcasts from a Supabase realtime channel (with a short collection window),
+ * falls back to loading recent photos from the database if no broadcasts are collected or on error, and renders
+ * a loading state, an animated header, a player list from presence state, a 2-column grid of matched photos
+ * (or an empty state), and a footer action that marks the match finished and navigates away (handles guest flow).
+ *
+ * @returns The Results screen React element.
+ */
 export default function ResultsScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<Params>();
@@ -253,7 +263,15 @@ export default function ResultsScreen() {
   );
 }
 
-// ─── MatchCard ─────────────────────────────────────────────────────────────────
+/**
+ * Renders an animated card for a matched photo.
+ *
+ * Displays the photo image, a heart badge with the number of likes when present, and an optional title footer. The card fades and scales into view with a stagger based on `index`.
+ *
+ * @param photo - The matched photo data to render (image URL, title, likedBy).
+ * @param index - Zero-based position used to stagger the entry animation delay.
+ * @returns A React element representing the animated photo card.
+ */
 
 function MatchCard({ photo, index }: { photo: MatchedPhoto; index: number }) {
   const anim = useRef(new Animated.Value(0)).current;

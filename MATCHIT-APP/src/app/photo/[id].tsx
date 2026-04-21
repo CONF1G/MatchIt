@@ -19,7 +19,14 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 // ─── Sub-componente ───────────────────────────────────────────────────────────
 
-/** Un tag afișat ca pill — cu buton de remove dacă isOwner */
+/**
+ * Render a tag as a pill, showing a close icon that calls `onRemove` when `isOwner` is true.
+ *
+ * @param tag - The tag text to display (without the leading `#`).
+ * @param isOwner - Whether the current user has ownership and can remove the tag.
+ * @param onRemove - Callback invoked when the remove icon is pressed.
+ * @returns The rendered tag pill element.
+ */
 function TagPill({
   tag, isOwner, onRemove,
 }: { tag: string; isOwner: boolean; onRemove: () => void }) {
@@ -35,7 +42,14 @@ function TagPill({
   );
 }
 
-/** Rândul unui comentariu */
+/**
+ * Renders a single comment row showing an avatar-like initial, username, content, and an optional delete button.
+ *
+ * @param comment - Comment data with `id`, `content`, and optional `profiles.username`; username displays as `"unknown"` if missing and the avatar initial falls back to `"?"` when unavailable.
+ * @param canDelete - When `true`, shows a delete icon for the comment.
+ * @param onDelete - Callback invoked when the delete icon is pressed.
+ * @returns The rendered comment row element.
+ */
 function CommentRow({
   comment, canDelete, onDelete,
 }: {
@@ -65,7 +79,15 @@ function CommentRow({
   );
 }
 
-// ─── Ecranul principal ────────────────────────────────────────────────────────
+/**
+ * Renders the photo detail screen with viewing, editing, tagging, liking, and commenting features.
+ *
+ * Displays a photo with like and comment actions, shows title/description (or an owner-only prompt),
+ * and conditionally enables edit and delete controls for the owner. Supports adding/removing tags,
+ * posting and deleting comments, and shows loading / error states.
+ *
+ * @returns The component's rendered JSX element for the photo detail screen.
+ */
 
 export default function PhotoScreen() {
   const insets = useSafeAreaInsets();

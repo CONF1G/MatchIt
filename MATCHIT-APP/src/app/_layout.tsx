@@ -6,6 +6,14 @@ import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { COLORS } from '../config/theme';
 
+/**
+ * Guards app routes based on authentication and onboarding state, performing redirects when appropriate and displaying a loading indicator while auth state is pending.
+ *
+ * - Unauthenticated users are redirected to the login route unless the current route is within the auth, guest, or lobby groups.
+ * - Authenticated users visiting auth routes are redirected to onboarding if their profile exists and onboarding is incomplete; otherwise they are redirected to the main tabs.
+ *
+ * @returns The component tree: a centered loading indicator while auth state is loading, otherwise the active route `<Slot />`.
+ */
 function AuthGuard() {
   const { user, loading, profile } = useAuth();
   const segments = useSegments();
@@ -43,6 +51,11 @@ function AuthGuard() {
   return <Slot />;
 }
 
+/**
+ * Root application layout that provides safe-area handling, configures the status bar, and mounts the authentication guard.
+ *
+ * @returns The top-level layout element wrapping the app with `SafeAreaProvider`, a light `StatusBar`, and the `AuthGuard` component.
+ */
 export default function RootLayout() {
   return (
     <SafeAreaProvider>

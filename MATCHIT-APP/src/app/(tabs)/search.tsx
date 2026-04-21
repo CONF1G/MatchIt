@@ -43,7 +43,12 @@ type UserResult = {
 
 type SearchTab = "catalogs" | "users";
 
-// ─── Sub-componente ───────────────────────────────────────────────────────────
+/**
+ * Renders a pressable catalog result card that navigates to the catalog detail when pressed.
+ *
+ * @param item - Catalog row containing id, title, optional cover_url, photos_count, likes_count, and optional profiles.username
+ * @returns A JSX element representing the catalog result card
+ */
 
 function CatalogResultCard({ item }: { item: CatalogResult }) {
   return (
@@ -83,6 +88,14 @@ function CatalogResultCard({ item }: { item: CatalogResult }) {
   );
 }
 
+/**
+ * Renders a pressable user result card showing avatar/initial, display name, username, catalogs count, and follower count.
+ *
+ * The card navigates to `/user/{item.id}` when pressed. If `item.avatar_url` is present it is shown as the avatar; otherwise the first letter of `item.username` (uppercased) is used.
+ *
+ * @param item - The user record to display (id, username, display_name, avatar_url, followers_count, catalogs_count)
+ * @returns The rendered user result card element
+ */
 function UserResultCard({ item }: { item: UserResult }) {
   return (
     <Pressable
@@ -129,7 +142,15 @@ const TRENDING_TAGS = [
   "nature", "urban", "fashion", "sport",
 ];
 
-// ─── Ecranul principal ────────────────────────────────────────────────────────
+/**
+ * Displays and manages the app's search screen for catalogs and users.
+ *
+ * Renders a search bar, tabbed results (Catalogs / Users) with result counts,
+ * loading and empty states, and a Trending tags view shown before any search.
+ * User input triggers debounced backend queries to populate the catalog and user lists.
+ *
+ * @returns The rendered Search screen component
+ */
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();

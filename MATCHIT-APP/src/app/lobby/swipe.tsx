@@ -48,7 +48,13 @@ type Params = {
   guestName?: string;
 };
 
-// ─── MatchOverlay ─────────────────────────────────────────────────────────────
+/**
+ * Displays an animated full-screen "It's a Match!" overlay for a matched photo and auto-dismisses it.
+ *
+ * @param photo - Photo object to show (uses `image_url` and optional `title`)
+ * @param onDismiss - Callback invoked when the overlay is dismissed (either automatically after a short delay or by the "Keep Swiping" button)
+ * @returns The rendered overlay element
+ */
 
 function MatchOverlay({ photo, onDismiss }: { photo: PhotoCard; onDismiss: () => void }) {
   const scale = useRef(new Animated.Value(0.7)).current;
@@ -79,7 +85,17 @@ function MatchOverlay({ photo, onDismiss }: { photo: PhotoCard; onDismiss: () =>
   );
 }
 
-// ─── SwipeCard ────────────────────────────────────────────────────────────────
+/**
+ * Renders a photo card that is either swipeable (when top) or a static stacked background card.
+ *
+ * The top card supports drag gestures, visual like/nope indicators, rotation, and triggers `onSwipe` when dismissed.
+ *
+ * @param photo - The photo data to display (image and optional title).
+ * @param isTop - Whether this card is the active top card (enables gesture interaction when true).
+ * @param stackIndex - Zero-based position in the stack used to compute non-top card scaling and vertical offset.
+ * @param onSwipe - Callback invoked with the swipe action (`"like" | "dislike" | "super_like"`) when the top card is swiped away.
+ * @returns A view element representing the card (interactive when `isTop`, otherwise a static stacked card).
+ */
 
 function SwipeCard({
   photo,
@@ -184,7 +200,18 @@ function SwipeCard({
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+/**
+ * Screen component that presents a swipe-based photo matching flow with realtime multiplayer synchronization.
+ *
+ * Loads candidate photos for the current match, manages local swipe progression, tracks and broadcasts presence
+ * and swipe events via Supabase realtime channels, detects mutual likes to surface a match overlay, and navigates
+ * to the results screen when the swipe deck is finished.
+ *
+ * Side effects: subscribes to a Supabase presence/broadcast channel, performs user/guest identification, triggers
+ * haptics for swipe and match events, and replaces navigation to the results route after completion.
+ *
+ * @returns The React element for the swipe matching screen.
+ */
 
 export default function SwipeScreen() {
   const insets = useSafeAreaInsets();

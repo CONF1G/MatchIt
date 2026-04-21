@@ -15,6 +15,14 @@ import { Input }    from "../../components/common/Input";
 import { Button }   from "../../components/common/Button";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
+/**
+ * Renders the "Resetare Parolă" screen that lets a user request a password-reset link by email.
+ *
+ * Shows an email input and submit button, validates the email contains "@" and displays errors,
+ * calls the auth `resetPassword` function, and switches to a success state when the reset email is sent.
+ *
+ * @returns A JSX element representing the Forgot Password screen.
+ */
 export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const { resetPassword } = useAuth();

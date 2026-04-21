@@ -20,6 +20,13 @@ type Params = {
   guestName?: string;
 };
 
+/**
+ * Renders the lobby waiting screen for a match, showing match info and realtime participant presence.
+ *
+ * Displays the match invite code, a participant list kept in sync with Supabase Realtime presence, and a confirmation-based leave flow. Navigates to the swipe screen when a `match_started` broadcast is received and tracks the current user/guest in presence while the screen is mounted.
+ *
+ * @returns The React element for the lobby waiting screen.
+ */
 export default function LobbyWaitingScreen() {
   const insets  = useSafeAreaInsets();
   const params  = useLocalSearchParams<Params>();

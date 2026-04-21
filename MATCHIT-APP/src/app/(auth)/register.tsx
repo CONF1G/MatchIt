@@ -26,6 +26,17 @@ type FormErrors = {
   confirmPassword?: string;
 };
 
+/**
+ * Validate registration form fields and return field-specific error messages.
+ *
+ * Performs these checks:
+ * - `email` contains the `@` character
+ * - `username` is at least 3 characters and matches `/^[a-z0-9_]+$/`
+ * - `password` is at least 6 characters
+ * - `password` equals `confirmPassword`
+ *
+ * @returns An object mapping field keys (`email`, `username`, `password`, `confirmPassword`) to their error message strings; empty when there are no validation failures.
+ */
 function validateForm(
   email: string, username: string,
   password: string, confirmPassword: string
@@ -40,7 +51,13 @@ function validateForm(
   return e;
 }
 
-// ─── Ecran ────────────────────────────────────────────────────────────────────
+/**
+ * Renders the registration screen with client-side validation, debounced live username availability checking, and submission via the app's auth hook.
+ *
+ * The screen manages form state (email, username, password, confirmPassword), displays field and server errors, shows username availability feedback while typing, and navigates to the login route after successful signup.
+ *
+ * @returns A React element that renders the registration UI.
+ */
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();

@@ -21,6 +21,13 @@ type Params = {
   title?: string;
 };
 
+/**
+ * Render a full-screen modal photo viewer that displays an image (from navigation params) with optional top and bottom chrome.
+ *
+ * Renders a tappable image area that toggles visibility of the status bar and chrome; when `uri` is absent it shows a centered fallback with a Close button. Reads `uri` and `title` from local search params and provides Close and Share controls when chrome is visible.
+ *
+ * @returns A React element representing the photo viewer screen. `uri`-dependent: displays the image when `uri` is present, otherwise renders the fallback view.
+ */
 export default function PhotoViewerModal() {
   const insets = useSafeAreaInsets();
   const { uri, title } = useLocalSearchParams<Params>();

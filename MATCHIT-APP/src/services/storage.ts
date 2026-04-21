@@ -28,21 +28,35 @@ export type StorageResponse<T> = {
   error: string | null;
 };
 
-// ─── Helpers interne ──────────────────────────────────────────────────────────
+/**
+ * Generate a timestamped unique filename using a short random suffix.
+ *
+ * @param ext - File extension to use (without a leading dot). Defaults to `"jpg"`.
+ * @returns A filename in the form `{timestamp}_{rand}.{ext}`, where `{rand}` is a short base36 string.
+ */
 
 function uniqueFileName(ext = "jpg"): string {
   const rand = Math.random().toString(36).substring(2, 8);
   return `${Date.now()}_${rand}.${ext}`;
 }
 
+/**
+ * Constructs a public URL for a storage object.
+ *
+ * @param bucket - The storage bucket name
+ * @param path - The object's path inside the bucket
+ * @returns The publicly accessible URL for the object
+ */
 function getPublicUrl(bucket: string, path: string): string {
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
 
 /**
- * Citește un fișier local ca ArrayBuffer pentru upload în Supabase.
- * Folosește expo-file-system care funcționează pe iOS și Android.
+ * Read a local file and return its contents as an ArrayBuffer.
+ *
+ * @param uri - Local file URI readable by Expo FileSystem (e.g., file://...)
+ * @returns The file's raw bytes as an `ArrayBuffer`
  */
 async function readFileAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
   const base64 = await FileSystem.readAsStringAsync(uri, {
@@ -58,7 +72,12 @@ async function readFileAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
 }
 
 /**
- * Comprimă și redimensionează o imagine locală.
+ * Compresses and resizes a local image to the specified maximum width and JPEG quality.
+ *
+ * @param uri - Local file URI of the image to process
+ * @param maxWidth - Maximum output width in pixels; aspect ratio is preserved
+ * @param quality - JPEG compression quality between 0 and 1
+ * @returns The URI of the processed image file
  */
 async function compressImage(
   uri:      string,
@@ -74,7 +93,10 @@ async function compressImage(
 }
 
 /**
- * Generează un thumbnail mic (400px lățime).
+ * Creates a JPEG thumbnail with a width of 400 pixels from a local image URI.
+ *
+ * @param uri - Local file URI of the source image
+ * @returns The local file URI of the generated JPEG thumbnail
  */
 async function generateThumbnail(uri: string): Promise<string> {
   const result = await ImageManipulator.manipulateAsync(
@@ -88,13 +110,11 @@ async function generateThumbnail(uri: string): Promise<string> {
 // ─── UPLOAD AVATAR ────────────────────────────────────────────────────────────
 
 /**
- * Uploadează avatarul unui utilizator.
- * Path: avatars/{userId}/avatar.jpg
- * upsert=true → suprascrie avatarul vechi automat.
+ * Uploads and replaces a user's avatar image in the avatars storage bucket.
  *
- * @example
- * const { data, error } = await uploadAvatar(pickerResult.uri, user.id);
- * if (data) await supabase.from("profiles").update({ avatar_url: data.url }).eq("id", user.id);
+ * @param localUri - Local file URI of the image to upload
+ * @param userId - User identifier used to build the storage path (`{userId}/avatar.jpg`)
+ * @returns An object whose `data` contains `{ url }` with the public URL of the uploaded avatar on success, or whose `error` contains an error message on failure
  */
 export async function uploadAvatar(
   localUri: string,
@@ -124,19 +144,12 @@ export async function uploadAvatar(
 // ─── UPLOAD POZĂ CATALOG ──────────────────────────────────────────────────────
 
 /**
- * Uploadează o poză într-un catalog + thumbnail automat.
- * Path principal:  catalog-photos/{userId}/{catalogId}/{fileName}
- * Path thumbnail:  thumbnails/{userId}/{catalogId}/thumb_{fileName}
+ * Uploads an image into the catalog bucket and a generated thumbnail into the thumbnails bucket.
  *
- * @example
- * const { data, error } = await uploadCatalogPhoto(uri, user.id, catalog.id);
- * if (data) {
- *   await supabase.from("photos").insert({
- *     image_url:     data.url,
- *     thumbnail_url: data.thumbnailUrl,
- *     storage_path:  data.path,
- *   });
- * }
+ * @param localUri - Local file URI of the image to upload
+ * @param userId - User identifier used to build the storage path
+ * @param catalogId - Catalog identifier used to build the storage path
+ * @returns `data` contains `{ path, url, thumbnailUrl }` on success where `path` is the storage path of the main image, `url` is the public URL of the main image, and `thumbnailUrl` is the public URL of the thumbnail; `error` contains a failure message otherwise.
  */
 export async function uploadCatalogPhoto(
   localUri:  string,
@@ -189,14 +202,15 @@ export async function uploadCatalogPhoto(
 // ─── UPLOAD MULTIPLE ──────────────────────────────────────────────────────────
 
 /**
- * Uploadează mai multe poze în batch-uri de 3 simultan.
- * @param onProgress Callback cu (pozeFăcute, total) după fiecare batch
+ * Uploads multiple catalog photos in concurrent batches of three.
  *
- * @example
- * const results = await uploadMultiplePhotos(uris, userId, catalogId, (done, total) => {
- *   setProgress(done / total);
- * });
- * const succeeded = results.filter(r => r.data !== null);
+ * Processes the provided URIs in batches and uploads each photo via the catalog upload routine.
+ *
+ * @param uris - Array of local URIs for the photos to upload
+ * @param userId - Identifier of the user who owns the catalog
+ * @param catalogId - Identifier of the catalog where photos will be stored
+ * @param onProgress - Optional callback invoked after each batch with `(done, total)` indicating how many items have been processed and the total count
+ * @returns An array of `StorageResponse<UploadResult>` entries corresponding to the input `uris`, in the same processing order
  */
 export async function uploadMultiplePhotos(
   uris:        string[],
@@ -222,7 +236,11 @@ export async function uploadMultiplePhotos(
 // ─── ȘTERGERE ─────────────────────────────────────────────────────────────────
 
 /**
- * Șterge un singur fișier din orice bucket.
+ * Delete a single file from the specified storage bucket.
+ *
+ * @param bucket - The name of the storage bucket containing the file
+ * @param path - The file's storage path inside the bucket (relative path/key)
+ * @returns An object where `data` is always `null` and `error` is `null` on success or contains an error message on failure
  */
 export async function deleteStorageFile(
   bucket: string,
@@ -234,8 +252,12 @@ export async function deleteStorageFile(
 }
 
 /**
- * Șterge poza și thumbnail-ul ei din Storage.
- * Apelat automat din deletePhoto() — nu blocăm dacă eșuează.
+ * Deletes a catalog image and its associated thumbnail from storage without throwing on failure.
+ *
+ * Attempts to remove the main file at `storagePath` (in the catalog bucket) and the corresponding
+ * thumbnail (same folder, filename prefixed with `thumb_`). Failures during deletion are ignored.
+ *
+ * @param storagePath - The storage path of the main catalog image (path inside the catalog bucket)
  */
 export async function deleteCatalogPhotoFiles(
   storagePath: string

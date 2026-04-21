@@ -27,7 +27,12 @@ type PickedAsset = {
 
 type UploadStatus = "idle" | "uploading" | "done" | "error";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+/**
+ * Normalize a raw tag string into a list of individual tags.
+ *
+ * @param raw - Raw tag input which may contain whitespace, commas, and leading `#` characters
+ * @returns An array of tag strings normalized to lowercase, stripped of a leading `#`, trimmed of surrounding whitespace, and excluding empty entries
+ */
 
 function splitTags(raw: string): string[] {
   return raw
@@ -36,7 +41,14 @@ function splitTags(raw: string): string[] {
     .filter(Boolean);
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+/**
+ * Renders a photo thumbnail that shows upload status overlays and an optional remove control.
+ *
+ * @param uri - Local image URI to display
+ * @param onRemove - Called when the remove control is pressed (only available when `status` is `"idle"`)
+ * @param status - Upload status which controls the overlay: `"idle" | "uploading" | "done" | "error"`
+ * @returns A React element showing the image, a status-specific overlay, and a removable button when idle
+ */
 
 function PhotoThumbnail({
   uri,
@@ -101,7 +113,13 @@ const thumb = StyleSheet.create({
   },
 });
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+/**
+ * Screen for selecting up to 10 photos, choosing a target catalog, adding a caption and tags, and uploading photos with per-photo status and overall progress.
+ *
+ * Renders UI for picking and previewing images, selecting or creating a catalog, entering a shared caption and normalized tags, and initiating uploads that update individual thumbnail statuses and an aggregate progress display.
+ *
+ * @returns A React element containing the post creation screen (photo grid and picker, catalog selector, caption and tag inputs, and upload/progress footer).
+ */
 
 export default function PostScreen() {
   const insets          = useSafeAreaInsets();

@@ -40,7 +40,14 @@ const CATEGORIES: Category[] = [
   { id: "books",        label: "Cărți",           icon: "book",           color: "#98FB98" },
 ];
 
-// ─── Card categorie ───────────────────────────────────────────────────────────
+/**
+ * Renders a selectable category tile with icon, label, and optional checkmark.
+ *
+ * @param category - Category data (id, label, icon name, and color) used to populate the tile
+ * @param selected - Whether the category is currently selected; toggles highlight and checkmark
+ * @param onPress - Callback invoked when the tile is pressed
+ * @returns The category card element to display in the category grid
+ */
 
 function CategoryCard({
   category, selected, onPress,
@@ -74,7 +81,13 @@ function CategoryCard({
   );
 }
 
-// ─── Ecran ────────────────────────────────────────────────────────────────────
+/**
+ * Presents the onboarding UI for selecting interest categories and advancing into the app.
+ *
+ * Displays a header with a skip action, a selectable grid of categories with a selection counter, and a footer with a continue button. Selecting tiles updates local selection state; pressing "Continuă" saves the chosen interests and marks onboarding as completed via `updateProfile`, then navigates to the app tabs. Pressing "Sari" marks onboarding as completed and navigates without saving interests. The continue button is disabled when no categories are selected or while the profile update is in progress.
+ *
+ * @returns The onboarding screen React element.
+ */
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();

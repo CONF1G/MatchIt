@@ -20,6 +20,13 @@ type Params = {
   matchedBy?:  string; // comma-separated display names
 };
 
+/**
+ * Renders a full-screen "It's a Match!" modal with an animated card entrance, heart burst, fading text, an optional match photo and title, a list of matched players (parsed from the `matchedBy` param), and a dismiss control.
+ *
+ * The modal auto-dismisses after 3 seconds and also dismisses when the "Continue Swiping" button is pressed.
+ *
+ * @returns The component's JSX element.
+ */
 export default function MatchAnimationModal() {
   const insets = useSafeAreaInsets();
   const { photoUri, photoTitle, matchedBy } = useLocalSearchParams<Params>();

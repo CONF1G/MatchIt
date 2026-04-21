@@ -51,7 +51,16 @@ const CREATE_OPTIONS: CreateOption[] = [
   },
 ];
 
-// ─── Card opțiune ─────────────────────────────────────────────────────────────
+/**
+ * Renders a pressable, animated creation option card and navigates to the option's route when pressed.
+ *
+ * The card shows an accent-colored icon, title, subtitle, and a trailing chevron. It enters with a
+ * staggered FadeInDown animation based on `index`.
+ *
+ * @param option - The creation option data (id, icon, title, subtitle, route, accentColor) to display.
+ * @param index - Zero-based position used to compute the animation delay for staggered entrance.
+ * @returns A React element representing the option card.
+ */
 
 function CreateOptionCard({
   option,
@@ -101,7 +110,14 @@ function CreateOptionCard({
   );
 }
 
-// ─── Ecranul principal ────────────────────────────────────────────────────────
+/**
+ * Screen that displays a creation hub with animated header, option cards, a divider, and quick-action buttons.
+ *
+ * Uses the safe-area top inset for padding and renders `CREATE_OPTIONS` as interactive, animated cards that navigate
+ * to their configured routes; also provides two quick actions for inviting friends and joining with a code.
+ *
+ * @returns The React element for the Create screen.
+ */
 
 export default function CreateScreen() {
   const insets = useSafeAreaInsets();

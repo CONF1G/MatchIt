@@ -12,9 +12,11 @@ import { API } from "../config/constants";
 // ─── CATALOAGE ────────────────────────────────────────────────────────────────
 
 /**
- * Aduce feed-ul public de cataloage, cu join pe profiles.
- * @param page  Numărul paginii (începe de la 0)
- * @param tag   Filtrare opțională după tag
+ * Fetches the paginated public catalog feed including profile info, optionally filtered by tag.
+ *
+ * @param page - Zero-based page index used to compute the range (pageSize = API.PAGE_SIZE_FEED)
+ * @param tag - Optional tag (case-insensitive) to filter catalogs whose `tags` array contains the value
+ * @returns An object with `data` as a list of catalogs joined with profile fields, `error` as an error message or `null`, `count` as the total number of matching catalogs, and `hasMore` indicating whether additional pages exist
  */
 export async function fetchPublicCatalogs(
   page = 0,
@@ -46,9 +48,11 @@ export async function fetchPublicCatalogs(
 }
 
 /**
- * Aduce cataloagele unui utilizator specific.
- * @param ownerId        UUID-ul proprietarului
- * @param includePrivate Dacă true, include și cataloagele private
+ * Fetches catalogs owned by the specified user.
+ *
+ * @param ownerId - UUID of the catalog owner
+ * @param includePrivate - If `true`, include private catalogs; defaults to `false`
+ * @returns The owner's catalogs joined with profile data as an array, or `null` if an error occurred
  */
 export async function fetchUserCatalogs(
   ownerId: string,
@@ -71,7 +75,9 @@ export async function fetchUserCatalogs(
 }
 
 /**
- * Aduce un catalog individual cu toate pozele lui.
+ * Fetches a catalog by id including its owner's profile and all associated photos.
+ *
+ * @returns The catalog object with joined `profiles` and a `photos` array, or `null` on error; `error` contains the error message when present.
  */
 export async function fetchCatalogById(
   id: string
@@ -91,7 +97,12 @@ export async function fetchCatalogById(
 }
 
 /**
- * Creează un catalog nou pentru utilizatorul autentificat.
+ * Create a new catalog owned by the currently authenticated user.
+ *
+ * If the caller is not authenticated, the function returns an error indicating authentication is required.
+ *
+ * @param input - New catalog data. `is_private` defaults to `false` if omitted; `tags` defaults to an empty array if omitted.
+ * @returns The created `Catalog` when successful; otherwise `data` is `null` and `error` contains the failure message.
  */
 export async function createCatalog(
   input: NewCatalog
@@ -115,8 +126,13 @@ export async function createCatalog(
 }
 
 /**
- * Actualizează un catalog existent.
- * Verificarea că userul este owner-ul se face prin RLS în DB.
+ * Updates an existing catalog.
+ *
+ * Authorization (ownership) is enforced by the database's Row Level Security; this function does not perform an ownership check.
+ *
+ * @param id - The ID of the catalog to update
+ * @param updates - Partial catalog fields to apply
+ * @returns The updated catalog in `data` on success, or `null` in `data` and an error message in `error` on failure
  */
 export async function updateCatalog(
   id: string,
@@ -134,7 +150,10 @@ export async function updateCatalog(
 }
 
 /**
- * Șterge un catalog și toate pozele asociate (CASCADE în DB).
+ * Deletes a catalog and its associated photos (cascade enforced by the database).
+ *
+ * @param id - The ID of the catalog to delete
+ * @returns `data: null` and `error` set to the error message if deletion failed, otherwise `error: null`
  */
 export async function deleteCatalog(
   id: string
@@ -151,7 +170,10 @@ export async function deleteCatalog(
 // ─── POZE ─────────────────────────────────────────────────────────────────────
 
 /**
- * Adaugă o poză într-un catalog.
+ * Insert a new photo record and associate it with the currently authenticated user.
+ *
+ * @param input - Photo fields to insert; the service sets `uploader_id` to the authenticated user's id.
+ * @returns The created `Photo` as `data` on success; `data` is `null` and `error` contains a message on failure.
  */
 export async function addPhoto(
   input: NewPhoto
@@ -170,7 +192,10 @@ export async function addPhoto(
 }
 
 /**
- * Șterge o poză dintr-un catalog.
+ * Deletes a photo by its id.
+ *
+ * @param id - The id of the photo to delete
+ * @returns `data: null` and `error: <message>` if deletion failed, otherwise `data: null` and `error: null`
  */
 export async function deletePhoto(
   id: string
@@ -185,8 +210,10 @@ export async function deletePhoto(
 }
 
 /**
- * Actualizează ordinea pozelor dintr-un catalog.
- * @param updates Array de { id, sort_order }
+ * Update the sort order for multiple photos.
+ *
+ * @param updates - Array of objects each with `id` (photo id) and `sort_order` (new position)
+ * @returns An object with `data` set to `null` and `error` containing an error message on failure, or `null` on success.
  */
 export async function updatePhotoOrder(
   updates: Array<{ id: string; sort_order: number }>
@@ -203,9 +230,12 @@ export async function updatePhotoOrder(
 // ─── LIKE-URI ─────────────────────────────────────────────────────────────────
 
 /**
- * Toggle like pe un catalog.
- * Dacă există → îl șterge. Dacă nu există → îl creează.
- * @returns isLiked — starea după operație
+ * Toggle the current user's like on a catalog.
+ *
+ * Requires an authenticated user.
+ *
+ * @param catalogId - The ID of the catalog to like or unlike
+ * @returns `{ isLiked: boolean }` where `isLiked` is `true` if the catalog is liked after the operation, `false` otherwise
  */
 export async function toggleCatalogLike(
   catalogId: string
@@ -240,7 +270,9 @@ export async function toggleCatalogLike(
 }
 
 /**
- * Verifică dacă userul curent a dat like la un catalog.
+ * Determines whether the current user has liked the specified catalog.
+ *
+ * @returns An object with `isLiked: true` if the current authenticated user has a like row for the catalog, `false` otherwise (unauthenticated users yield `isLiked: false`).
  */
 export async function checkCatalogLike(
   catalogId: string

@@ -54,13 +54,22 @@ const SIZE_CONFIG: Record<ButtonSize, {
 // ─── Componenta ───────────────────────────────────────────────────────────────
 
 /**
- * Buton reutilizabil cu variante, mărimi, iconițe și stări de loading.
+ * Render a customizable button with variants, sizes, optional icons, and loading/disabled states.
  *
- * @example
- * <Button label="Salvează" onPress={handleSave} />
- * <Button label="Anulează" onPress={handleCancel} variant="secondary" />
- * <Button label="Se salvează..." onPress={() => {}} loading />
- * <Button label="Șterge" onPress={handleDelete} variant="danger" leftIcon="trash" />
+ * Renders a pressable button that can show an activity indicator when `loading` is true, and becomes non-interactive when `disabled` is true or while loading.
+ *
+ * @param label - Button text
+ * @param onPress - Callback invoked when the button is pressed
+ * @param variant - Visual variant of the button (defaults to `"primary"`)
+ * @param size - Size of the button: `"sm" | "md" | "lg"` (defaults to `"md"`)
+ * @param loading - When true, shows a spinner instead of label and icons (defaults to `false`)
+ * @param disabled - When true, disables interaction and applies disabled styling (defaults to `false`)
+ * @param leftIcon - Optional Ionicons glyph name to render to the left of the label (key from `Ionicons.glyphMap`)
+ * @param rightIcon - Optional Ionicons glyph name to render to the right of the label (key from `Ionicons.glyphMap`)
+ * @param fullWidth - When true, the button expands to full width of its container (defaults to `false`)
+ * @param style - Optional container style overrides
+ * @param textStyle - Optional text style overrides for the label
+ * @returns A `JSX.Element` representing the configured button
  */
 export function Button({
   label,

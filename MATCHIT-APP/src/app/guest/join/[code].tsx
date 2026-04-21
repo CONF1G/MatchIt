@@ -22,6 +22,13 @@ const MODE_LABELS: Record<string, string> = {
   tournament:  "Tournament",
 };
 
+/**
+ * Screen component that lets a user join a lobby as a guest by entering an invite code and a display name.
+ *
+ * Manages invite code lookup (with URL param auto-lookup when a `code` param of length ≥ 4 is present), displays errors and a lobby preview when a lobby is found, and then collects a display name to create a guest session and navigate to the lobby waiting screen.
+ *
+ * @returns A React element that renders the guest join screen UI.
+ */
 export default function GuestJoinScreen() {
   const insets = useSafeAreaInsets();
   const { code: codeParam } = useLocalSearchParams<{ code?: string }>();

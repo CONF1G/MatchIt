@@ -26,6 +26,13 @@ type Friend = {
   avatar_url:   string | null;
 };
 
+/**
+ * Render a modal that displays an invite code and lets the user copy, share, and invite their followed friends.
+ *
+ * Loads an invite code from route params or (when only `matchId` is provided) from the `matches` table, and fetches up to 50 followed users to list as invite targets. Provides a search input, loading and empty states, per-friend invite sharing, a copy-to-clipboard action with a temporary "Copied!" state, and a share-sheet for the invite link. If no invite code is available, shows an informational banner and prevents friend invites.
+ *
+ * @returns The modal screen React element containing invite code controls and the friends list.
+ */
 export default function InviteFriendsModal() {
   const insets = useSafeAreaInsets();
   const { matchId, inviteCode } = useLocalSearchParams<Params>();
