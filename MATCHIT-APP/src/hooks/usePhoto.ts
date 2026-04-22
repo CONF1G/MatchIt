@@ -68,7 +68,7 @@ export function usePhoto(photoId: string): UsePhotoReturn {
   const [error,           setError]           = useState<string | null>(null);
 
   // Userul curent este owner-ul pozei?
-  const isOwner = !!user && photo?.user_id === user.id;
+  const isOwner = !!user && photo?.uploader_id === user.id;
 
   // ── Fetch poză ────────────────────────────────────────────────────────────
   const refresh = useCallback(async () => {

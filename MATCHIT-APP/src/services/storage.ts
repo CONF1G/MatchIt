@@ -5,9 +5,10 @@
 // Instalare dependențe:
 //   npx expo install expo-image-manipulator expo-file-system
 
-import * as ImageManipulator from "expo-image-manipulator";
-import * as FileSystem from "expo-file-system";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { Platform } from "react-native";
 import { supabase } from "./supabase";
+import { ENV } from "../config/env";
 
 // ─── Constante bucket-uri ─────────────────────────────────────────────────────
 
@@ -41,48 +42,59 @@ function getPublicUrl(bucket: string, path: string): string {
 }
 
 /**
- * Citește un fișier local ca ArrayBuffer pentru upload în Supabase.
- * Folosește expo-file-system care funcționează pe iOS și Android.
+ * Rewrites the host of a Supabase storage URL to match the current SUPABASE_URL.
+ * Fixes "localhost" URLs stored in the DB not resolving on phones/other devices.
  */
+export function normalizeStorageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const match = url.match(/\/storage\/v1\/object\/public\/.+/);
+  if (match) return `${ENV.SUPABASE_URL}${match[0]}`;
+  return url;
+}
+
+// On web, fetch handles blob:/data:/http: URIs fine.
+// On Android/iOS, fetch("file://...") throws "Network request failed" —
+// use expo-file-system (read as base64, decode to ArrayBuffer) instead.
 async function readFileAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
-  const base64 = await FileSystem.readAsStringAsync(uri, {
+  if (Platform.OS === "web") {
+    const response = await fetch(uri);
+    return response.arrayBuffer();
+  }
+
+  // Native path — require() keeps expo-file-system out of the web bundle.
+  // Use the /legacy sub-path to avoid the deprecation warning while keeping
+  // the same readAsStringAsync API.
+  const FileSystem = require("expo-file-system/legacy");
+  const base64: string = await FileSystem.readAsStringAsync(uri, {
     encoding: "base64",
   });
 
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+  const binary = atob(base64);
+  const bytes  = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
   return bytes.buffer;
 }
 
-/**
- * Comprimă și redimensionează o imagine locală.
- */
 async function compressImage(
   uri:      string,
   maxWidth: number = 1200,
   quality:  number = 0.8
 ): Promise<string> {
-  const result = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: maxWidth } }],
-    { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
-  );
-  return result.uri;
+  const ref = await ImageManipulator.manipulate(uri)
+    .resize({ width: maxWidth })
+    .renderAsync();
+  const { uri: out } = await ref.saveAsync({ compress: quality, format: SaveFormat.JPEG });
+  return out;
 }
 
-/**
- * Generează un thumbnail mic (400px lățime).
- */
 async function generateThumbnail(uri: string): Promise<string> {
-  const result = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 400 } }],
-    { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG }
-  );
-  return result.uri;
+  const ref = await ImageManipulator.manipulate(uri)
+    .resize({ width: 400 })
+    .renderAsync();
+  const { uri: out } = await ref.saveAsync({ compress: 0.75, format: SaveFormat.JPEG });
+  return out;
 }
 
 // ─── UPLOAD AVATAR ────────────────────────────────────────────────────────────

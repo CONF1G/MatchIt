@@ -83,14 +83,7 @@ export function useAuth(): UseAuthReturn {
 
   // ── Init sesiune la pornire ───────────────────────────────────────────────
   useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) await fetchProfile(session.user.id);
-      setLoading(false);
-    };
-    init();
+    let initialized = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -98,6 +91,11 @@ export function useAuth(): UseAuthReturn {
         setUser(session?.user ?? null);
         if (session?.user) await fetchProfile(session.user.id);
         else setProfile(null);
+
+        if (!initialized) {
+          initialized = true;
+          setLoading(false);
+        }
       }
     );
     return () => subscription.unsubscribe();
@@ -167,7 +165,7 @@ export function useAuth(): UseAuthReturn {
     if (!user) return false;
     setUpdatingProfile(true);
     setAuthError(null);
-    const { error } = await authUpdateProfile(updates as any);
+    const { error } = await authUpdateProfile(updates);
     if (error) { setAuthError(error); setUpdatingProfile(false); return false; }
     setProfile((prev) => prev ? { ...prev, ...updates } : prev);
     setUpdatingProfile(false);

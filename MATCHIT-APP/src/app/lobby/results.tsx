@@ -23,7 +23,7 @@ type Params = {
 
 type MatchedPhoto = {
   id:        string;
-  image_url: string;
+  url: string;
   title?:    string | null;
   likedBy:   string[];
 };
@@ -80,7 +80,7 @@ export default function ResultsScreen() {
             if (!exists) {
               collectedMatches.push({
                 id:       payload.photoId,
-                image_url: payload.imageUrl,
+                url: payload.imageUrl,
                 title:    payload.title ?? null,
                 likedBy:  payload.matchedBy ?? [],
               });
@@ -131,7 +131,7 @@ export default function ResultsScreen() {
       if (match?.catalog_id) {
         const { data: photos } = await supabase
           .from("photos")
-          .select("id, image_url, title")
+          .select("id, url, title")
           .eq("catalog_id", match.catalog_id)
           .limit(6);
 
@@ -139,7 +139,7 @@ export default function ResultsScreen() {
         setMatches(
           (photos ?? []).slice(0, 3).map((p: any) => ({
             id:        p.id,
-            image_url: p.image_url,
+            url: p.url,
             title:     p.title ?? null,
             likedBy:   [],
           }))
@@ -278,7 +278,7 @@ function MatchCard({ photo, index }: { photo: MatchedPhoto; index: number }) {
       ]}
     >
       <Image
-        source={{ uri: photo.image_url }}
+        source={{ uri: photo.url }}
         style={styles.matchCardImage}
         contentFit="cover"
         transition={200}

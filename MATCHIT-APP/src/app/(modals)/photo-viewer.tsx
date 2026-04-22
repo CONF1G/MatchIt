@@ -5,7 +5,8 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { goBack } from "../../utils/navigation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useAnimatedStyle, useSharedValue,
@@ -47,7 +48,7 @@ export default function PhotoViewerModal() {
     } catch { /* ignore */ }
   };
 
-  const handleClose = () => router.back();
+  const handleClose = () => goBack();
 
   if (!uri) {
     return (

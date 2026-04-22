@@ -9,6 +9,7 @@ import {
   Alert, ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { goBack } from "../../utils/navigation";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -131,7 +132,7 @@ export default function RegisterScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <Pressable onPress={() => goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={22} color={COLORS.text} />
           </Pressable>
           <View>

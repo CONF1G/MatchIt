@@ -22,9 +22,9 @@ const CARD_H = SH * 0.58;
 type SwipeAction = "like" | "dislike" | "super_like";
 
 type PhotoCard = {
-  id:        string;
-  image_url: string;
-  title?:    string | null;
+  id:    string;
+  url:   string;
+  title?: string | null;
 };
 
 type SwipePayload = {
@@ -66,7 +66,7 @@ function MatchOverlay({ photo, onDismiss }: { photo: PhotoCard; onDismiss: () =>
   return (
     <Animated.View style={[styles.matchOverlay, { opacity }]}>
       <Animated.View style={[styles.matchCard, { transform: [{ scale }] }]}>
-        <Image source={{ uri: photo.image_url }} style={styles.matchCardImage} contentFit="cover" />
+        <Image source={{ uri: photo.url }} style={styles.matchCardImage} contentFit="cover" />
         <View style={styles.matchCardBody}>
           <Text style={styles.matchTitle}>It's a Match!</Text>
           {photo.title ? <Text style={styles.matchSubtitle}>{photo.title}</Text> : null}
@@ -148,7 +148,7 @@ function SwipeCard({
           },
         ]}
       >
-        <Image source={{ uri: photo.image_url }} style={styles.cardImage} contentFit="cover" />
+        <Image source={{ uri: photo.url }} style={styles.cardImage} contentFit="cover" />
       </Animated.View>
     );
   }
@@ -161,7 +161,7 @@ function SwipeCard({
       ]}
       {...panResponder.panHandlers}
     >
-      <Image source={{ uri: photo.image_url }} style={styles.cardImage} contentFit="cover" />
+      <Image source={{ uri: photo.url }} style={styles.cardImage} contentFit="cover" />
 
       {/* Like badge */}
       <Animated.View style={[styles.badge, styles.badgeLike, { opacity: likeOp }]}>
@@ -233,7 +233,7 @@ export default function SwipeScreen() {
         if (match?.catalog_id) {
           const { data } = await supabase
             .from("photos")
-            .select("id, image_url, title")
+            .select("id, url, title")
             .eq("catalog_id", match.catalog_id)
             .order("sort_order", { ascending: true })
             .limit(50);
@@ -244,7 +244,7 @@ export default function SwipeScreen() {
         if (photos.length === 0) {
           const { data } = await supabase
             .from("photos")
-            .select("id, image_url, title")
+            .select("id, url, title")
             .order("created_at", { ascending: false })
             .limit(30);
           photos = (data ?? []) as PhotoCard[];
@@ -288,7 +288,7 @@ export default function SwipeScreen() {
               channel.send({
                 type:    "broadcast",
                 event:   "match_found",
-                payload: { photoId: photo.id, imageUrl: photo.image_url, title: photo.title ?? null, matchedBy: [...set] } satisfies MatchPayload,
+                payload: { photoId: photo.id, imageUrl: photo.url, title: photo.title ?? null, matchedBy: [...set] } satisfies MatchPayload,
               });
             }
           }

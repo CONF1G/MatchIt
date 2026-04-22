@@ -6,7 +6,7 @@
 import { useState } from "react";
 import {
   View, Text, StyleSheet, Pressable,
-  ScrollView, ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -78,7 +78,7 @@ function CategoryCard({
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const { updateProfile, updatingProfile, user } = useAuth();
+  const { updateProfile, updatingProfile } = useAuth();
 
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -94,7 +94,7 @@ export default function OnboardingScreen() {
     const ok = await updateProfile({
       interests:            selected,
       onboarding_completed: true,
-    } as any);
+    });
 
     if (ok) {
       router.replace("/(tabs)");

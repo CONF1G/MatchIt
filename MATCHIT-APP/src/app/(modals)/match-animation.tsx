@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { goBack } from "../../utils/navigation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -47,7 +48,7 @@ export default function MatchAnimationModal() {
     textOpacity.value = withDelay(400, withTiming(1, { duration: 300 }));
 
     // Auto-dismiss after 3 seconds
-    const t = setTimeout(() => router.back(), 3000);
+    const t = setTimeout(() => goBack(), 3000);
     return () => clearTimeout(t);
   }, []);
 
@@ -123,7 +124,7 @@ export default function MatchAnimationModal() {
 
         {/* Dismiss button */}
         <Animated.View style={[{ width: "100%", alignItems: "center" }, textStyle]}>
-          <Pressable style={styles.dismissBtn} onPress={() => router.back()}>
+          <Pressable style={styles.dismissBtn} onPress={() => goBack()}>
             <Text style={styles.dismissText}>Continue Swiping</Text>
           </Pressable>
         </Animated.View>

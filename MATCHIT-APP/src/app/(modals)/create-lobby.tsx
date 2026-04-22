@@ -8,6 +8,7 @@ import {
   Pressable, Image, Alert, Switch, FlatList,
 } from "react-native";
 import { router } from "expo-router";
+import { goBack } from "../../utils/navigation";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -111,7 +112,7 @@ export default function CreateLobbyModal() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.closeBtn} disabled={submitting}>
+        <Pressable onPress={() => goBack()} style={styles.closeBtn} disabled={submitting}>
           <Ionicons name="close" size={22} color={COLORS.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Lobby Nou</Text>
@@ -217,7 +218,7 @@ export default function CreateLobbyModal() {
             <Pressable
               style={styles.noCatalogsBox}
               onPress={() => {
-                router.back();
+                goBack();
                 setTimeout(() => router.push("/(modals)/create-catalog"), 300);
               }}
             >

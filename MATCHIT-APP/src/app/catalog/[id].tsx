@@ -9,16 +9,18 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../../hooks/useAuth";
-import { fetchCatalogById, toggleCatalogLike, checkCatalogLike } from "../../services/catalog";
+import { fetchCatalogById, toggleCatalogLike, checkCatalogLike, deleteCatalog } from "../../services/catalog";
 import { fetchPhotosByCatalog, deletePhoto } from "../../services/photo";
+import { normalizeStorageUrl } from "../../services/storage";
+import { goBack } from "../../utils/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 const C = COLORS;
 
 type Photo = {
-  id:        string;
-  image_url: string;
-  title?:    string | null;
+  id:    string;
+  url:   string;
+  title?: string | null;
 };
 
 // ─── Photo tile ───────────────────────────────────────────────────────────────
@@ -45,7 +47,7 @@ function PhotoTile({
       }}
     >
       <Image
-        source={{ uri: photo.image_url }}
+        source={{ uri: photo.url }}
         style={styles.tileImg}
         contentFit="cover"
         transition={200}
@@ -87,7 +89,9 @@ export default function CatalogScreen() {
     ]);
 
     if (catRes.data)    { setCatalog(catRes.data); setLikeCount(catRes.data.likes_count ?? 0); }
-    if (photosRes.data) setPhotos(photosRes.data as Photo[]);
+    if (photosRes.data) setPhotos(
+      (photosRes.data as Photo[]).map((p) => ({ ...p, url: normalizeStorageUrl(p.url) ?? p.url }))
+    );
     if (likeRes.data)   setLiked(likeRes.data.isLiked);
 
     setLoading(false);
@@ -125,6 +129,28 @@ export default function CatalogScreen() {
     }
   };
 
+  const handleDeleteCatalog = () => {
+    Alert.alert(
+      "Delete Catalog",
+      "This will permanently delete the catalog and all its photos.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await deleteCatalog(id);
+            if (error) {
+              Alert.alert("Error", error);
+            } else {
+              goBack();
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // ─── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -139,7 +165,7 @@ export default function CatalogScreen() {
       <View style={[styles.center, { paddingTop: insets.top }]}>
         <Ionicons name="alert-circle-outline" size={44} color={C.textMuted} />
         <Text style={styles.notFoundText}>Catalog not found</Text>
-        <Pressable style={styles.backPill} onPress={() => router.back()}>
+        <Pressable style={styles.backPill} onPress={() => goBack()}>
           <Text style={styles.backPillText}>Go back</Text>
         </Pressable>
       </View>
@@ -152,7 +178,7 @@ export default function CatalogScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Floating header */}
       <View style={styles.header}>
-        <Pressable style={styles.floatBtn} onPress={() => router.back()}>
+        <Pressable style={styles.floatBtn} onPress={() => goBack()}>
           <Ionicons name="chevron-back" size={22} color={C.text} />
         </Pressable>
         <View style={styles.headerRight}>
@@ -160,12 +186,17 @@ export default function CatalogScreen() {
             <Ionicons name="share-outline" size={20} color={C.text} />
           </Pressable>
           {isOwner && (
-            <Pressable
-              style={styles.floatBtn}
-              onPress={() => router.push(`/catalog/edit?id=${id}` as any)}
-            >
-              <Ionicons name="create-outline" size={20} color={C.text} />
-            </Pressable>
+            <>
+              <Pressable
+                style={styles.floatBtn}
+                onPress={() => router.push(`/catalog/edit?id=${id}` as any)}
+              >
+                <Ionicons name="create-outline" size={20} color={C.text} />
+              </Pressable>
+              <Pressable style={styles.floatBtn} onPress={handleDeleteCatalog}>
+                <Ionicons name="trash-outline" size={18} color={C.danger} />
+              </Pressable>
+            </>
           )}
         </View>
       </View>
