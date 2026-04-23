@@ -144,7 +144,7 @@ function SwipeCard({
           styles.card,
           {
             transform: [{ scale: scaleVal }, { translateY }],
-            zIndex:    -stackIndex,
+            zIndex:    SWIPE.PREFETCH_COUNT - stackIndex,
           },
         ]}
       >
@@ -199,9 +199,11 @@ export default function SwipeScreen() {
   const [playerCount,  setPlayerCount]  = useState(1);
   const [done,         setDone]         = useState(false);
 
-  const myId = useRef<string>("");
+  const myId      = useRef<string>("");
+  const photosRef = useRef<PhotoCard[]>([]);
+  const firstMatchDoneRef = useRef(false);
   // photoId → Set of playerIds who liked it
-  const likedBy = useRef<Map<string, Set<string>>>(new Map());
+  const likedBy    = useRef<Map<string, Set<string>>>(new Map());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // ── Identify self ─────────────────────────────────────────────────────────
@@ -210,8 +212,8 @@ export default function SwipeScreen() {
       if (amGuest) {
         myId.current = guestId ?? "guest-" + Math.random().toString(36).slice(2, 7);
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        myId.current = user?.id ?? "anon";
+        const { data: { session } } = await supabase.auth.getSession();
+        myId.current = session?.user.id ?? "anon";
       }
     })();
   }, []);
@@ -221,9 +223,9 @@ export default function SwipeScreen() {
     if (!matchId) return;
     (async () => {
       try {
-        // Try to get the catalog linked to this match
+        // Get the catalog linked to this lobby
         const { data: match } = await supabase
-          .from("matches")
+          .from("lobbies")
           .select("catalog_id")
           .eq("id", matchId)
           .single();
@@ -250,6 +252,7 @@ export default function SwipeScreen() {
           photos = (data ?? []) as PhotoCard[];
         }
 
+        photosRef.current = photos;
         setPhotos(photos);
       } finally {
         setLoading(false);
@@ -280,7 +283,7 @@ export default function SwipeScreen() {
         setPlayerCount((count) => {
           const needed = Math.min(2, count);
           if (set.size >= needed) {
-            const photo = photos.find((p) => p.id === payload.photoId);
+            const photo = photosRef.current.find((p) => p.id === payload.photoId);
             if (photo) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               setMatchedPhoto(photo);
@@ -296,22 +299,22 @@ export default function SwipeScreen() {
         });
       })
       .on("broadcast", { event: "match_found" }, ({ payload }: { payload: MatchPayload }) => {
-        setPhotos((prev) => {
-          const photo = prev.find((p) => p.id === payload.photoId);
-          if (photo) {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            setMatchedPhoto(photo);
-          }
-          return prev;
-        });
+        const photo = photosRef.current.find((p) => p.id === payload.photoId);
+        if (!photo) return;
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setMatchedPhoto((cur) => cur ?? photo); // don't override if already showing one
+        if (mode === "first_match" && !firstMatchDoneRef.current) {
+          firstMatchDoneRef.current = true;
+          setTimeout(() => setDone(true), 3000);
+        }
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: { session } } = await supabase.auth.getSession();
           await channel.track({
             type:        amGuest ? "guest" : "user",
             id:          myId.current,
-            displayName: amGuest ? (guestName ?? "Guest") : (user?.email?.split("@")[0] ?? "Unknown"),
+            displayName: amGuest ? (guestName ?? "Guest") : (session?.user.email?.split("@")[0] ?? "Unknown"),
             isHost:      false,
           });
         }
@@ -560,6 +563,7 @@ const styles = StyleSheet.create({
     alignItems:     "center",
     justifyContent: "center",
     marginTop:      SPACING.md,
+    zIndex:         0,    // creates stacking context so card z-indexes stay local
   },
 
   card: {

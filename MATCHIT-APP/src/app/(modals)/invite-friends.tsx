@@ -42,7 +42,7 @@ export default function InviteFriendsModal() {
     (async () => {
       if (!matchCode && matchId) {
         const { data } = await supabase
-          .from("matches")
+          .from("lobbies")
           .select("invite_code")
           .eq("id", matchId)
           .single();
@@ -55,7 +55,8 @@ export default function InviteFriendsModal() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) { setLoading(false); return; }
 
       const { data } = await supabase

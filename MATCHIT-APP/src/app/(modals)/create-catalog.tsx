@@ -179,7 +179,7 @@ export default function CreateCatalogModal() {
           <Ionicons name="close" size={22} color={COLORS.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Catalog Nou</Text>
-        <View style={{ width: 36 }} /> {/* Spacer pentru centrare */}
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView

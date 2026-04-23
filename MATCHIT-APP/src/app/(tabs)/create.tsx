@@ -34,14 +34,6 @@ const CREATE_OPTIONS: CreateOption[] = [
     accentColor: COLORS.accent,
   },
   {
-    id: "lobby",
-    icon: "game-controller",
-    title: "Lobby de Joc",
-    subtitle: "Pornește o sesiune de swipe cu prietenii",
-    route: "/(modals)/create-lobby",
-    accentColor: "#5C9EFF",
-  },
-  {
     id: "post",
     icon: "image",
     title: "Adaugă Poze",
@@ -124,58 +116,6 @@ export default function CreateScreen() {
         ))}
       </View>
 
-      {/* Separator */}
-      <Animated.View
-        entering={FadeInDown.delay(400)}
-        style={styles.dividerRow}
-      >
-        <View style={styles.divider} />
-        <Text style={styles.dividerText}>sau continuă rapid</Text>
-        <View style={styles.divider} />
-      </Animated.View>
-
-      {/* Acțiuni rapide */}
-      <Animated.View
-        entering={FadeInDown.delay(500)}
-        style={styles.quickActions}
-      >
-        <Pressable
-          style={({ pressed }) => [
-            styles.quickBtn,
-            pressed && { opacity: 0.75 },
-          ]}
-          onPress={() => router.push("/(modals)/invite-friends" as any)}
-        >
-          <Ionicons
-            name="person-add-outline"
-            size={20}
-            color={COLORS.accent}
-          />
-          <Text style={styles.quickBtnText}>Invită prieteni</Text>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.quickBtn,
-            pressed && { opacity: 0.75 },
-          ]}
-          onPress={() =>
-            router.push({
-              pathname: "/guest/join/[code]",
-              params: { code: "" },
-            })
-          }
-        >
-          <Ionicons
-            name="enter-outline"
-            size={20}
-            color={COLORS.info}
-          />
-          <Text style={[styles.quickBtnText, { color: COLORS.info }]}>
-            Intră cu cod
-          </Text>
-        </Pressable>
-      </Animated.View>
     </View>
   );
 }
