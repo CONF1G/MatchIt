@@ -29,12 +29,13 @@ export default function LobbyScreen() {
   const { id }        = useLocalSearchParams<{ id: string }>();
   const channelRef    = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const [lobby,        setLobby]        = useState<Lobby | null>(null);
-  const [participants, setParticipants] = useState<ParticipantWithProfile[]>([]);
+  const [lobby,         setLobby]         = useState<Lobby | null>(null);
+  const [participants,  setParticipants]  = useState<ParticipantWithProfile[]>([]);
+  const [presenceGuests, setPresenceGuests] = useState<{ id: string; displayName: string }[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [loading,      setLoading]      = useState(true);
-  const [starting,     setStarting]     = useState(false);
-  const [copied,       setCopied]       = useState(false);
+  const [loading,       setLoading]       = useState(true);
+  const [starting,      setStarting]      = useState(false);
+  const [copied,        setCopied]        = useState(false);
 
   const isHost = lobby?.host_id === currentUserId;
 
@@ -59,7 +60,7 @@ export default function LobbyScreen() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  // ── Realtime subscription ───────────────────────────────────────────────────
+  // ── Realtime subscription (DB changes) ─────────────────────────────────────
   useEffect(() => {
     if (!id) return;
 
@@ -79,6 +80,20 @@ export default function LobbyScreen() {
     channelRef.current = ch;
     return () => { ch.unsubscribe(); };
   }, [id, reload]);
+
+  // ── Presence subscription (guests) ─────────────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase.channel(`match-presence:${id}`);
+    ch.on("presence", { event: "sync" }, () => {
+      const state = ch.presenceState<any>();
+      const guests = (Object.values(state).flat() as any[])
+        .filter((m) => m.type === "guest")
+        .map((m) => ({ id: m.id as string, displayName: m.displayName as string }));
+      setPresenceGuests(guests);
+    }).subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [id]);
 
   // ── Actions ─────────────────────────────────────────────────────────────────
   const handleCopy = async () => {
@@ -158,6 +173,7 @@ export default function LobbyScreen() {
   }
 
   const activeParticipants = participants.filter(p => !p.left_at);
+  const totalPlayers = activeParticipants.length + presenceGuests.length;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -219,7 +235,7 @@ export default function LobbyScreen() {
               <View style={styles.metaChip}>
                 <Ionicons name="people-outline" size={13} color={C.textMuted} />
                 <Text style={[styles.metaChipText, { color: C.textMuted }]}>
-                  {activeParticipants.length} / {lobby.max_players}
+                  {totalPlayers} / {lobby.max_players}
                 </Text>
               </View>
               {lobby.is_public && (
@@ -264,17 +280,31 @@ export default function LobbyScreen() {
         ListFooterComponent={
           isHost ? (
             <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
+              {/* Guest rows */}
+              {presenceGuests.map((g) => (
+                <View key={g.id} style={styles.playerRow}>
+                  <View style={[styles.avatar, { backgroundColor: C.info + "60" }]}>
+                    <Text style={styles.avatarText}>{g.displayName.slice(0, 2).toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerName}>{g.displayName}</Text>
+                    <Text style={styles.hostBadge}>Guest</Text>
+                  </View>
+                  <View style={[styles.onlineDot, { backgroundColor: C.success }]} />
+                </View>
+              ))}
+
               <Text style={styles.footerHint}>
                 Share the code above and start when everyone's in.
               </Text>
               <Pressable
                 style={({ pressed }) => [
                   styles.startBtn,
-                  (starting || activeParticipants.length < 2) && styles.startBtnDisabled,
+                  (starting || totalPlayers < 2) && styles.startBtnDisabled,
                   pressed && { opacity: 0.85 },
                 ]}
                 onPress={handleStart}
-                disabled={starting || activeParticipants.length < 2}
+                disabled={starting || totalPlayers < 2}
               >
                 {starting
                   ? <ActivityIndicator size="small" color={C.textInverse} />
@@ -284,7 +314,7 @@ export default function LobbyScreen() {
                   {starting ? "Starting…" : "Start Match"}
                 </Text>
               </Pressable>
-              {activeParticipants.length < 2 && (
+              {totalPlayers < 2 && (
                 <Text style={styles.needMoreText}>
                   Need at least 2 players to start
                 </Text>

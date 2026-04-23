@@ -96,10 +96,16 @@ function SwipeCard({
   const likeOp   = useRef(new Animated.Value(0)).current;
   const nopeOp   = useRef(new Animated.Value(0)).current;
 
+  // Refs so PanResponder (created once at mount) always reads latest values
+  const isTopRef  = useRef(isTop);
+  const onSwipeRef = useRef(onSwipe);
+  useEffect(() => { isTopRef.current  = isTop;   }, [isTop]);
+  useEffect(() => { onSwipeRef.current = onSwipe; }, [onSwipe]);
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isTop,
-      onMoveShouldSetPanResponder:  () => isTop,
+      onStartShouldSetPanResponder: () => isTopRef.current,
+      onMoveShouldSetPanResponder:  () => isTopRef.current,
       onPanResponderMove: (_, { dx, dy }) => {
         pan.setValue({ x: dx, y: dy });
         const ratio = dx / SWIPE.THRESHOLD;
@@ -114,7 +120,7 @@ function SwipeCard({
             toValue:         { x: dir * SW * 1.5, y: 0 },
             duration:        ANIMATION.durationNormal,
             useNativeDriver: true,
-          }).start(() => onSwipe(dx > 0 ? "like" : "dislike"));
+          }).start(() => onSwipeRef.current(dx > 0 ? "like" : "dislike"));
         } else {
           Animated.spring(pan, {
             toValue:         { x: 0, y: 0 },
@@ -202,6 +208,7 @@ export default function SwipeScreen() {
   const myId      = useRef<string>("");
   const photosRef = useRef<PhotoCard[]>([]);
   const firstMatchDoneRef = useRef(false);
+  const winnerPhotoRef    = useRef<PhotoCard | null>(null);
   // photoId → Set of playerIds who liked it
   const likedBy    = useRef<Map<string, Set<string>>>(new Map());
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -264,7 +271,9 @@ export default function SwipeScreen() {
   useEffect(() => {
     if (!matchId) return;
 
-    const channel = supabase.channel(`match-presence:${matchId}`);
+    const channel = supabase.channel(`match-presence:${matchId}`, {
+      config: { broadcast: { self: true } },
+    });
     channelRef.current = channel;
 
     channel
@@ -273,6 +282,8 @@ export default function SwipeScreen() {
         setPlayerCount(Object.values(state).flat().length || 1);
       })
       .on("broadcast", { event: "player_swipe" }, ({ payload }: { payload: SwipePayload }) => {
+        // Skip own swipes — already tracked locally in handleSwipe
+        if (payload.playerId === myId.current) return;
         if (payload.action !== "like" && payload.action !== "super_like") return;
 
         const set = likedBy.current.get(payload.photoId) ?? new Set();
@@ -302,9 +313,10 @@ export default function SwipeScreen() {
         const photo = photosRef.current.find((p) => p.id === payload.photoId);
         if (!photo) return;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        setMatchedPhoto((cur) => cur ?? photo); // don't override if already showing one
+        setMatchedPhoto((cur) => cur ?? photo);
         if (mode === "first_match" && !firstMatchDoneRef.current) {
           firstMatchDoneRef.current = true;
+          winnerPhotoRef.current = photo;
           setTimeout(() => setDone(true), 3000);
         }
       })
@@ -371,7 +383,16 @@ export default function SwipeScreen() {
     const t = setTimeout(() => {
       router.replace({
         pathname: "/lobby/results",
-        params:   { matchId, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
+        params:   {
+          matchId,
+          mode,
+          isGuest:          isGuest ?? "0",
+          guestId:          guestId ?? "",
+          guestName:        guestName ?? "",
+          winnerPhotoId:    winnerPhotoRef.current?.id ?? "",
+          winnerPhotoUrl:   winnerPhotoRef.current?.url ?? "",
+          winnerPhotoTitle: winnerPhotoRef.current?.title ?? "",
+        },
       });
     }, 1200);
     return () => clearTimeout(t);

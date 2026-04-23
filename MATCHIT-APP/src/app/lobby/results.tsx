@@ -15,10 +15,14 @@ import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 const C = COLORS;
 
 type Params = {
-  matchId:   string;
-  isGuest?:  string;
-  guestId?:  string;
-  guestName?: string;
+  matchId:          string;
+  mode?:            string;
+  isGuest?:         string;
+  guestId?:         string;
+  guestName?:       string;
+  winnerPhotoId?:   string;
+  winnerPhotoUrl?:  string;
+  winnerPhotoTitle?: string;
 };
 
 type MatchedPhoto = {
@@ -31,7 +35,7 @@ type MatchedPhoto = {
 export default function ResultsScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<Params>();
-  const { matchId, isGuest, guestId, guestName } = params;
+  const { matchId, isGuest, guestId, guestName, winnerPhotoUrl, winnerPhotoTitle } = params;
   const amGuest = isGuest === "1";
 
   const [matches,  setMatches]  = useState<MatchedPhoto[]>([]);
@@ -193,9 +197,11 @@ export default function ResultsScreen() {
         </View>
         <Text style={styles.heroTitle}>Match Complete!</Text>
         <Text style={styles.heroSubtitle}>
-          {matches.length > 0
-            ? `${matches.length} photo${matches.length > 1 ? "s" : ""} matched`
-            : "No matches this round"}
+          {winnerPhotoUrl
+            ? "First match found!"
+            : matches.length > 0
+              ? `${matches.length} photo${matches.length > 1 ? "s" : ""} matched`
+              : "No matches this round"}
         </Text>
       </Animated.View>
 
@@ -215,12 +221,30 @@ export default function ResultsScreen() {
         </View>
       )}
 
-      {/* Matched photos grid */}
-      {matches.length > 0 ? (
+      {/* Winner card (first_match mode) */}
+      {winnerPhotoUrl ? (
+        <View style={styles.winnerSection}>
+          <Text style={styles.winnerLabel}>THE MATCH</Text>
+          <Animated.View
+            style={[
+              styles.winnerCard,
+              {
+                opacity:   headerAnim,
+                transform: [{ scale: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] }) }],
+              },
+            ]}
+          >
+            <Image source={{ uri: winnerPhotoUrl }} style={styles.winnerImage} contentFit="cover" />
+            {winnerPhotoTitle ? (
+              <View style={styles.winnerFooter}>
+                <Text style={styles.winnerTitle}>{winnerPhotoTitle}</Text>
+              </View>
+            ) : null}
+          </Animated.View>
+        </View>
+      ) : matches.length > 0 ? (
         <>
-          <Text style={styles.sectionTitle}>
-            Matched Photos
-          </Text>
+          <Text style={styles.sectionTitle}>Matched Photos</Text>
           <FlatList
             data={matches}
             keyExtractor={(item) => item.id}
@@ -409,6 +433,45 @@ const styles = StyleSheet.create({
     paddingVertical:   SPACING.xs,
   },
   matchCardTitle: { color: C.text, fontSize: FONT_SIZE.xs, fontWeight: "600" },
+
+  winnerSection: {
+    alignItems:        "center",
+    paddingHorizontal: SPACING.lg,
+    paddingBottom:     100,
+    gap:               SPACING.sm,
+  },
+  winnerLabel: {
+    color:         C.accent,
+    fontSize:      FONT_SIZE.xs,
+    fontWeight:    "900",
+    letterSpacing: 3,
+    textTransform: "uppercase",
+  },
+  winnerCard: {
+    width:           "100%",
+    borderRadius:    RADIUS.xl,
+    overflow:        "hidden",
+    backgroundColor: C.surface,
+    borderWidth:     2,
+    borderColor:     C.borderAccent,
+    aspectRatio:     1,
+  },
+  winnerImage: { width: "100%", height: "100%" },
+  winnerFooter: {
+    position:          "absolute",
+    bottom:            0,
+    left:              0,
+    right:             0,
+    backgroundColor:   "rgba(0,0,0,0.65)",
+    paddingHorizontal: SPACING.lg,
+    paddingVertical:   SPACING.md,
+  },
+  winnerTitle: {
+    color:      C.text,
+    fontSize:   FONT_SIZE.lg,
+    fontWeight: "700",
+    textAlign:  "center",
+  },
 
   emptyState: {
     flex:           1,
