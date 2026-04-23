@@ -6,7 +6,8 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { goBack } from "../../utils/navigation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "../../services/supabase";
@@ -41,7 +42,7 @@ export default function InviteFriendsModal() {
     (async () => {
       if (!matchCode && matchId) {
         const { data } = await supabase
-          .from("matches")
+          .from("lobbies")
           .select("invite_code")
           .eq("id", matchId)
           .single();
@@ -54,7 +55,8 @@ export default function InviteFriendsModal() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) { setLoading(false); return; }
 
       const { data } = await supabase
@@ -116,7 +118,7 @@ export default function InviteFriendsModal() {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
-        <Pressable style={styles.closeBtn} onPress={() => router.back()}>
+        <Pressable style={styles.closeBtn} onPress={() => goBack()}>
           <Ionicons name="close" size={22} color={C.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Invite Friends</Text>

@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/useAuth";
 import { fetchUserCatalogs } from "../services/catalog";
 import { createPhoto } from "../services/photo";
+import { goBack } from "../utils/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../config/theme";
 
 const C = COLORS;
@@ -114,6 +115,7 @@ export default function PostScreen() {
   const [tagInput,      setTagInput]      = useState("");
   const [tags,          setTags]          = useState<string[]>([]);
   const [statuses,      setStatuses]      = useState<UploadStatus[]>([]);
+  const [uploadErrors,  setUploadErrors]  = useState<(string | null)[]>([]);
   const [uploading,     setUploading]     = useState(false);
   const [doneCount,     setDoneCount]     = useState(0);
   const [loadingCats,   setLoadingCats]   = useState(true);
@@ -156,6 +158,7 @@ export default function PostScreen() {
     setAssets((prev) => {
       const merged = [...prev, ...newAssets].slice(0, 10); // max 10
       setStatuses(merged.map(() => "idle"));
+      setUploadErrors(merged.map(() => null));
       return merged;
     });
   }, []);
@@ -167,8 +170,14 @@ export default function PostScreen() {
 
   // ── Tag management ────────────────────────────────────────────────────────
   const commitTag = () => {
-    const newTags = splitTags(tagInput).filter((t) => !tags.includes(t));
-    if (newTags.length) setTags((prev) => [...prev, ...newTags]);
+    const parsed = splitTags(tagInput);
+    if (!parsed.length) { setTagInput(""); return; }
+    // Use functional update so both onSubmitEditing + onBlur firing together
+    // always read the latest state and never produce duplicates.
+    setTags((prev) => {
+      const added = parsed.filter((t) => !prev.includes(t));
+      return added.length ? [...prev, ...added] : prev;
+    });
     setTagInput("");
   };
 
@@ -190,6 +199,7 @@ export default function PostScreen() {
 
     let successCount = 0;
     const allTags = [...tags, ...splitTags(tagInput)];
+    const errors: (string | null)[] = assets.map(() => null);
 
     for (let i = 0; i < assets.length; i++) {
       setStatuses((prev) => prev.map((s, idx) => idx === i ? "uploading" : s));
@@ -202,9 +212,11 @@ export default function PostScreen() {
         sortOrder:   i,
       });
 
+      errors[i] = error;
       setStatuses((prev) =>
         prev.map((s, idx) => idx === i ? (error ? "error" : "done") : s)
       );
+      setUploadErrors([...errors]);
 
       if (!error) {
         successCount++;
@@ -215,14 +227,14 @@ export default function PostScreen() {
     setUploading(false);
 
     if (successCount === assets.length) {
-      // All succeeded — navigate to the catalog
       setTimeout(() => {
         router.replace({ pathname: "/catalog/[id]", params: { id: catalogId } });
       }, 800);
     } else {
+      const firstError = errors.find(Boolean);
       Alert.alert(
-        `${successCount}/${assets.length} photos uploaded`,
-        "Some photos failed. You can retry or go back.",
+        `${successCount}/${assets.length} uploaded`,
+        firstError ?? "Some photos failed. Check your connection and try again.",
       );
     }
   };
@@ -236,7 +248,7 @@ export default function PostScreen() {
 
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={C.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Add Photos</Text>
@@ -369,9 +381,9 @@ export default function PostScreen() {
 
           {tags.length > 0 && (
             <View style={styles.tagRow}>
-              {tags.map((tag) => (
+              {tags.map((tag, i) => (
                 <Pressable
-                  key={tag}
+                  key={`${tag}-${i}`}
                   style={styles.tagChip}
                   onPress={() => removeTag(tag)}
                 >

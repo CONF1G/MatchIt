@@ -35,7 +35,7 @@ export default function LobbyWaitingScreen() {
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
-        .from("matches")
+        .from("lobbies")
         .select("id, mode, status, invite_code, host_id")
         .eq("id", matchId)
         .single();
@@ -69,12 +69,12 @@ export default function LobbyWaitingScreen() {
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           // Track ourselves in presence
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: { session } } = await supabase.auth.getSession();
 
           await channel.track({
             type:        amGuest ? "guest" : "user",
-            id:          amGuest ? (guestId ?? "unknown") : (user?.id ?? "unknown"),
-            displayName: amGuest ? (guestName ?? "Guest") : (user?.email?.split("@")[0] ?? "Unknown"),
+            id:          amGuest ? (guestId ?? "unknown") : (session?.user.id ?? "unknown"),
+            displayName: amGuest ? (guestName ?? "Guest") : (session?.user.email?.split("@")[0] ?? "Unknown"),
             isHost:      false,
           } satisfies PresenceMember);
         }

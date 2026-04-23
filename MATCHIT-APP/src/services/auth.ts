@@ -164,7 +164,8 @@ export async function getCurrentSession(): Promise<Session | null> {
  * Aduce utilizatorul curent autentificat.
  */
 export async function getCurrentUser(): Promise<User | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   return user;
 }
 
@@ -188,12 +189,15 @@ export async function getCurrentUser(): Promise<User | null> {
  * await updateProfile({ display_name: "Ion Dev", bio: "Salut!" });
  */
 export async function updateProfile(updates: {
-  username?:     string;
-  display_name?: string;
-  avatar_url?:   string;
-  bio?:          string;
+  username?:             string;
+  display_name?:         string | null;
+  avatar_url?:           string | null;
+  bio?:                  string | null;
+  interests?:            string[];
+  onboarding_completed?: boolean;
 }): Promise<AuthResponse<null>> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) return { data: null, error: "Nu ești autentificat" };
 
   const { error } = await supabase

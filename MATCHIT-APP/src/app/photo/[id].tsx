@@ -6,15 +6,17 @@ import { useState, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, Image,
   Pressable, TextInput, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Switch, FlatList,
+  KeyboardAvoidingView, Platform, Share,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { usePhoto }  from "../../hooks/usePhoto";
 import { Button }    from "../../components/common/Button";
 import { Input }     from "../../components/common/Input";
+import { normalizeStorageUrl } from "../../services/storage";
+import { goBack } from "../../utils/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 // ─── Sub-componente ───────────────────────────────────────────────────────────
@@ -39,7 +41,7 @@ function TagPill({
 function CommentRow({
   comment, canDelete, onDelete,
 }: {
-  comment: { id: string; content: string; profiles?: { username: string } | null };
+  comment: { id: string; body: string; author_id: string; profiles?: { username: string } | null };
   canDelete: boolean;
   onDelete: () => void;
 }) {
@@ -54,7 +56,7 @@ function CommentRow({
         <Text style={styles.commentUsername}>
           @{comment.profiles?.username ?? "unknown"}
         </Text>
-        <Text style={styles.commentContent}>{comment.content}</Text>
+        <Text style={styles.commentContent}>{comment.body}</Text>
       </View>
       {canDelete && (
         <Pressable onPress={onDelete} hitSlop={8}>
@@ -123,7 +125,7 @@ export default function PhotoScreen() {
           onPress: async () => {
             const ok = await remove();
             if (ok) {
-              router.back();
+              goBack();
             } else {
               Alert.alert("Eroare", "Nu s-a putut șterge poza.");
             }
@@ -143,13 +145,33 @@ export default function PhotoScreen() {
     setNewTagInput("");
   };
 
+  // ── Share ─────────────────────────────────────────────────────────────────
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        title:   photo?.title ?? "Check out this photo",
+        message: photo?.url ?? "",
+        url:     photo?.url ?? "",
+      });
+    } catch {
+      // user cancelled or share not supported
+    }
+  };
+
   // ── Trimite comentariu ────────────────────────────────────────────────────
   const handlePostComment = async () => {
     if (!commentInput.trim()) return;
     setPostingComment(true);
-    const ok = await postComment(commentInput);
-    if (ok) setCommentInput("");
-    setPostingComment(false);
+    try {
+      const ok = await postComment(commentInput);
+      if (ok) {
+        setCommentInput("");
+      } else {
+        Alert.alert("Eroare", "Comentariul nu a putut fi postat. Încearcă din nou.");
+      }
+    } finally {
+      setPostingComment(false);
+    }
   };
 
   // ── Loading / Error states ─────────────────────────────────────────────────
@@ -166,7 +188,7 @@ export default function PhotoScreen() {
       <View style={styles.center}>
         <Ionicons name="image-outline" size={40} color={COLORS.textMuted} />
         <Text style={styles.errorText}>Poza nu a putut fi încărcată</Text>
-        <Button label="Înapoi" onPress={() => router.back()} variant="secondary" size="sm" />
+        <Button label="Înapoi" onPress={() => goBack()} variant="secondary" size="sm" />
       </View>
     );
   }
@@ -179,7 +201,7 @@ export default function PhotoScreen() {
     >
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Pressable onPress={() => router.back()} style={styles.headerBtn}>
+        <Pressable onPress={() => goBack()} style={styles.headerBtn}>
           <Ionicons name="chevron-back" size={22} color={COLORS.text} />
         </Pressable>
 
@@ -233,7 +255,7 @@ export default function PhotoScreen() {
         {/* ── Imagine ── */}
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: photo.image_url }}
+            source={{ uri: normalizeStorageUrl(photo.url) ?? photo.url }}
             style={styles.image}
             resizeMode="contain"
           />
@@ -260,6 +282,10 @@ export default function PhotoScreen() {
           >
             <Ionicons name="chatbubble-outline" size={22} color={COLORS.text} />
             <Text style={styles.actionCount}>{comments.length}</Text>
+          </Pressable>
+
+          <Pressable style={styles.actionBtn} onPress={handleShare}>
+            <Ionicons name="share-outline" size={22} color={COLORS.text} />
           </Pressable>
         </View>
 
@@ -396,7 +422,7 @@ export default function PhotoScreen() {
                 <CommentRow
                   key={c.id}
                   comment={c}
-                  canDelete={isOwner || c.user_id === photo.user_id}
+                  canDelete={isOwner || c.author_id === photo.uploader_id}
                   onDelete={() => removeComment(c.id)}
                 />
               ))

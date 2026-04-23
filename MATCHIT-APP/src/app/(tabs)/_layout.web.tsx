@@ -1,113 +1,453 @@
-import { Slot, useRouter, Href } from 'expo-router';
-import { View, Text, TextInput, Pressable, Image, ScrollView } from 'react-native';
-import { AntDesign, Feather } from '@expo/vector-icons';
-import LogoImg from '../../../assets/logo.png';
+import { useEffect, useState } from "react";
+import { Slot, useRouter, Href } from "expo-router";
+import {
+  View, Text, TextInput, Pressable, ScrollView,
+  StyleSheet, ActivityIndicator,
+} from "react-native";
+import { Image } from "expo-image";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
-// this must be a from the user saved catalogs
-const catalogs = [
-    { id: '1', name: 'Summer 2026', path: '/', image: 'https://picsum.photos/200' },
-    { id: '2', name: 'UI Design', path: '/matchLobby', image: 'https://picsum.photos/201' },
-    { id: '3', name: 'MatchIt Ideas', path: '/create', image: 'https://picsum.photos/202' },
-    { id: '4', name: 'Recipes', path: '/profile', image: 'https://picsum.photos/203' },
-];
+import { COLORS, FONT_SIZE, RADIUS, SPACING } from "../../config/theme";
+import { supabase } from "../../services/supabase";
+import { fetchUserCatalogs } from "../../services/catalog";
+import LogoImg from "../../../assets/logo.png";
 
-interface WebNavIconProps {
-  name: any;
-  path: Href;
-  iconFamily?: any;
-}
+const C = COLORS;
 
-const WebNavIcon = ({ name, path, iconFamily: IconFamily = AntDesign }: WebNavIconProps) => {
-  const router = useRouter();
-  return (
-    <Pressable onPress={() => router.push(path)} style={{ padding: 10, marginVertical: 5 }}>
-      <IconFamily name={name} size={24} color="black" />
-    </Pressable>
-  );
-};
+type CatalogItem = { id: string; title: string; cover_url?: string | null };
 
 export default function WebLayout() {
-  const router = useRouter(); // Use the hook consistently
+  const router = useRouter();
+
+  const [search,         setSearch]         = useState("");
+  const [dropdownOpen,   setDropdownOpen]   = useState(false);
+  const [catalogs,       setCatalogs]       = useState<CatalogItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [userName,       setUserName]       = useState("");
+  const [userInitials,   setUserInitials]   = useState("?");
+  const [activeNav,      setActiveNav]      = useState<string>("/");
+
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
+      if (!user) { setCatalogLoading(false); return; }
+
+      const display =
+        user.user_metadata?.display_name ??
+        user.user_metadata?.username ??
+        user.email?.split("@")[0] ?? "User";
+      setUserName(display);
+      setUserInitials(display.slice(0, 2).toUpperCase());
+
+      const { data } = await fetchUserCatalogs(user.id, true);
+      setCatalogs(
+        (data ?? []).map((c: any) => ({
+          id:        c.id,
+          title:     c.title ?? "Untitled",
+          cover_url: c.cover_url ?? null,
+        }))
+      );
+      setCatalogLoading(false);
+    })();
+  }, []);
+
+  const handleSearch = () => {
+    const q = search.trim();
+    if (!q) return;
+    router.push(`/?q=${encodeURIComponent(q)}` as Href);
+  };
+
+  const handleSignOut = async () => {
+    setDropdownOpen(false);
+    await supabase.auth.signOut();
+    router.replace("/(auth)/login" as Href);
+  };
+
+  const navTo = (href: string) => {
+    setActiveNav(href);
+    router.push(href as Href);
+  };
 
   return (
-   <View style={{ flex: 1, backgroundColor: 'white' }}>
-      {/* TOP NAVBAR */}
-      <View style={{ height: 60, borderBottomWidth: 1, borderColor: '#eee', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
-        <Pressable 
-          onPress={() => router.replace('/matchLobby')} 
-          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, marginRight: 20 })}
+    <View style={styles.root}>
+
+      {/* ── TOP NAV ─────────────────────────────────────────────────────── */}
+      <View style={styles.navbar}>
+
+        {/* Logo */}
+        <Pressable
+          onPress={() => navTo("/")}
+          style={({ pressed }) => [styles.logoBtn, pressed && { opacity: 0.7 }]}
         >
-          <Image source={LogoImg} style={{ width: 50, height: 50, resizeMode: 'contain' }} />
+          <Image source={LogoImg} style={styles.logo} contentFit="contain" />
+          <Text style={styles.logoText}>MatchIt</Text>
         </Pressable>
 
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <View style={{ width: '60%', height: 40, backgroundColor: '#f0f0f0', borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15 }}>
-            <AntDesign name="search" size={18} color="gray" style={{ marginRight: 10 }} />
-            <TextInput placeholder="Search..." style={{ flex: 1 }} />
-          </View>
+        {/* Search */}
+        <View style={styles.searchWrap}>
+          <Ionicons name="search-outline" size={14} color={C.textMuted} style={{ marginRight: 6 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search photos, catalogs…"
+            placeholderTextColor={C.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch("")} hitSlop={6}>
+              <Ionicons name="close-circle" size={14} color={C.textMuted} />
+            </Pressable>
+          )}
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Feather name="user" size={24} color="white" style={{ backgroundColor: '#ccc', borderRadius: 20, padding: 8, marginRight: 5 }} />
-            <Pressable onPress={() => router.push('/profile')} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, marginLeft: 15 })}>
-              <Feather name="chevron-down" size={18} color="black" />
+        {/* Right: quick actions + profile */}
+        <View style={styles.navRight}>
+          <Pressable
+            style={({ pressed }) => [styles.navActionBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => navTo("/(modals)/create-catalog")}
+          >
+            <Ionicons name="add" size={16} color={C.text} />
+            <Text style={styles.navActionText}>New Catalog</Text>
+          </Pressable>
+
+          {/* Profile */}
+          <View style={styles.profileArea}>
+            <Pressable
+              onPress={() => setDropdownOpen((v) => !v)}
+              style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
+            >
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{userInitials}</Text>
+              </View>
+              <Feather
+                name={dropdownOpen ? "chevron-up" : "chevron-down"}
+                size={13}
+                color={C.textMuted}
+              />
             </Pressable>
 
+            {dropdownOpen && (
+              <View style={styles.dropdown}>
+                <Text style={styles.dropdownName} numberOfLines={1}>{userName}</Text>
+                <View style={styles.dropdownDivider} />
+                <DropdownItem icon="person-outline"          label="View Profile"   onPress={() => { setDropdownOpen(false); navTo("/(tabs)/profile"); }} />
+                <DropdownItem icon="albums-outline"          label="My Catalogs"    onPress={() => { setDropdownOpen(false); navTo("/(tabs)/profile"); }} />
+                <DropdownItem icon="game-controller-outline" label="Create Match"   onPress={() => { setDropdownOpen(false); navTo("/(modals)/create-lobby"); }} />
+                <View style={styles.dropdownDivider} />
+                <DropdownItem icon="log-out-outline"         label="Sign Out" danger onPress={handleSignOut} />
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
-      {/* MAIN BODY */}
-      <View style={{ flex: 1, flexDirection: 'row' }}>
-        
-        {/* NARROW SIDEBAR (60px) */}
-        <View style={{ width: 60, borderRightWidth: 1, borderRightColor: '#eee', alignItems: 'center' }}>
-          
-          {/* Main Nav Icons */}
-          <View style={{ paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#eee', width: '100%', alignItems: 'center' }}>
-            <WebNavIcon name="home" path="/" />
-            <WebNavIcon name="plus" path="/create" />
+      {/* ── BODY ────────────────────────────────────────────────────────── */}
+      <View style={styles.body}>
+
+        {/* Sidebar */}
+        <View style={styles.sidebar}>
+          <View style={{ gap: 2, padding: 8 }}>
+            <SidebarItem icon="home-outline"            label="Home"   href="/"           active={activeNav === "/"}           onPress={() => navTo("/")} />
+            <SidebarItem icon="search-outline"          label="Search" href="/search"     active={activeNav === "/search"}     onPress={() => navTo("/(tabs)/search")} />
+            <SidebarItem icon="game-controller-outline" label="Match"  href="/matchLobby" active={activeNav === "/matchLobby"} onPress={() => navTo("/(tabs)/matchLobby")} />
+            <SidebarItem icon="cloud-upload-outline"    label="Upload" href="/post"       active={activeNav === "/post"}       onPress={() => navTo("/post")} />
           </View>
 
-          {/* BATALOGS LIST (Narrow stack) */}
-          <ScrollView 
-            showsVerticalScrollIndicator={false} 
-            contentContainerStyle={{ alignItems: 'center', paddingTop: 15 }}
-            style={{ width: '100%' }}
-          >
-            {catalogs.map((board) => (
-              <Pressable 
-                key={board.id}
-                onPress={() => router.push(board.path as Href)}
-                style={({ pressed }) => ({
-                  width: 40, // Narrower than the 60px sidebar
-                  marginBottom: 12,
-                  opacity: pressed ? 0.7 : 1,
-                  alignItems: 'center'
-                })}
-              >
-                <Image 
-                  source={{ uri: board.image }} 
-                  style={{ 
-                    width: 40, 
-                    height: 40, 
-                    borderRadius: 8, // Square-ish Pinterest look
-                    backgroundColor: '#f0f0f0' 
-                  }} 
-                />
-                {/* Text is hidden or very small because 60px is too narrow for words */}
-                <Text numberOfLines={1} style={{ fontSize: 8, fontWeight: '600', marginTop: 2, textAlign: 'center' }}>
-                  {board.name.split(' ')[0]} {/* Only show first word */}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+          <View style={styles.sidebarDivider} />
+
+          <Text style={styles.sidebarLabel}>MY CATALOGS</Text>
+
+          {catalogLoading ? (
+            <ActivityIndicator size="small" color={C.accent} style={{ margin: SPACING.md }} />
+          ) : catalogs.length === 0 ? (
+            <Text style={styles.sidebarEmpty}>No catalogs yet</Text>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+              {catalogs.map((cat) => (
+                <Pressable
+                  key={cat.id}
+                  onPress={() => router.push(`/catalog/${cat.id}` as Href)}
+                  style={({ pressed }) => [styles.catalogRow, pressed && { backgroundColor: C.surfaceHigh }]}
+                >
+                  <View style={styles.catalogThumb}>
+                    {cat.cover_url ? (
+                      <Image source={{ uri: cat.cover_url }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                    ) : (
+                      <Ionicons name="images-outline" size={12} color={C.textMuted} />
+                    )}
+                  </View>
+                  <Text style={styles.catalogName} numberOfLines={1}>{cat.title}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
-        {/* CONTENT AREA */}
-        <View style={{ flex: 1, backgroundColor: '#f9f9f9', padding: 20 }}>
-          <Slot /> 
+        {/* Main content — centered with max-width */}
+        <View style={styles.contentOuter}>
+          {dropdownOpen && (
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setDropdownOpen(false)} />
+          )}
+          <View style={styles.contentInner}>
+            <Slot />
+          </View>
         </View>
       </View>
     </View>
   );
 }
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function DropdownItem({ icon, label, onPress, danger = false }: {
+  icon: any; label: string; onPress: () => void; danger?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.dropdownItem, pressed && { backgroundColor: C.surfaceHigh }]}
+    >
+      <Ionicons name={icon} size={14} color={danger ? C.danger : C.textSecondary} />
+      <Text style={[styles.dropdownLabel, danger && { color: C.danger }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function SidebarItem({ icon, label, active, onPress }: {
+  icon: any; label: string; href: string; active: boolean; onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.sidebarItem,
+        active && styles.sidebarItemActive,
+        pressed && !active && { backgroundColor: C.surfaceHigh },
+      ]}
+    >
+      <Ionicons name={icon} size={17} color={active ? C.accent : C.textSecondary} />
+      <Text style={[styles.sidebarItemLabel, active && { color: C.accent, fontWeight: "700" }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const SIDEBAR_W = 200;
+const NAV_H     = 46;
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
+
+  // Navbar
+  navbar: {
+    height:            NAV_H,
+    backgroundColor:   C.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    flexDirection:     "row",
+    alignItems:        "center",
+    paddingHorizontal: 20,
+    gap:               12,
+    zIndex:            100,
+  },
+  logoBtn: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           7,
+    marginRight:   4,
+    flexShrink:    0,
+  },
+  logo:     { width: 22, height: 22 },
+  logoText: { color: C.text, fontSize: FONT_SIZE.md, fontWeight: "900", letterSpacing: -0.3 },
+
+  searchWrap: {
+    flex:              1,
+    flexDirection:     "row",
+    alignItems:        "center",
+    backgroundColor:   C.bg,
+    borderRadius:      RADIUS.full,
+    borderWidth:       1,
+    borderColor:       C.border,
+    paddingHorizontal: 12,
+    height:            30,
+    maxWidth:          420,
+  },
+  searchInput: {
+    flex:      1,
+    color:     C.text,
+    fontSize:  FONT_SIZE.sm,
+    outlineStyle: "none",
+  } as any,
+
+  navRight: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           8,
+    flexShrink:    0,
+  },
+  navActionBtn: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               5,
+    paddingHorizontal: 10,
+    paddingVertical:   5,
+    borderRadius:      RADIUS.md,
+    borderWidth:       1,
+    borderColor:       C.border,
+    backgroundColor:   C.surfaceHigh,
+  },
+  navActionText: { color: C.textSecondary, fontSize: FONT_SIZE.sm, fontWeight: "600" },
+
+  // Profile
+  profileArea: { position: "relative" },
+  profileBtn: {
+    flexDirection:   "row",
+    alignItems:      "center",
+    gap:             6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius:    RADIUS.md,
+    backgroundColor: C.surfaceHigh,
+    borderWidth:     1,
+    borderColor:     C.border,
+  },
+  avatar: {
+    width:           26,
+    height:          26,
+    borderRadius:    13,
+    backgroundColor: C.accentDim,
+    alignItems:      "center",
+    justifyContent:  "center",
+  },
+  avatarText: { color: C.textInverse, fontSize: 10, fontWeight: "800" },
+
+  dropdown: {
+    position:        "absolute",
+    top:             36,
+    right:           0,
+    width:           188,
+    backgroundColor: C.surface,
+    borderRadius:    RADIUS.lg,
+    borderWidth:     1,
+    borderColor:     C.border,
+    paddingVertical: SPACING.xs,
+    zIndex:          200,
+    shadowColor:     "#000",
+    shadowOffset:    { width: 0, height: 6 },
+    shadowOpacity:   0.35,
+    shadowRadius:    12,
+    elevation:       12,
+  },
+  dropdownName: {
+    color:             C.textMuted,
+    fontSize:          FONT_SIZE.xs,
+    fontWeight:        "600",
+    paddingHorizontal: 12,
+    paddingVertical:   6,
+    letterSpacing:     0.3,
+  },
+  dropdownItem: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               8,
+    paddingHorizontal: 12,
+    paddingVertical:   8,
+  },
+  dropdownLabel:   { color: C.text, fontSize: FONT_SIZE.sm },
+  dropdownDivider: { height: 1, backgroundColor: C.border, marginVertical: 2 },
+
+  // Body
+  body: { flex: 1, flexDirection: "row", overflow: "hidden" },
+
+  // Sidebar
+  sidebar: {
+    width:            SIDEBAR_W,
+    backgroundColor:  C.surface,
+    borderRightWidth: 1,
+    borderRightColor: C.border,
+    paddingTop:       SPACING.sm,
+    flexShrink:       0,
+  },
+  sidebarItem: {
+    flexDirection:   "row",
+    alignItems:      "center",
+    gap:             9,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius:    RADIUS.md,
+  },
+  sidebarItemActive: {
+    backgroundColor: C.accentSubtle,
+  },
+  sidebarItemLabel: {
+    color:     C.textSecondary,
+    fontSize:  FONT_SIZE.sm,
+    fontWeight: "500",
+  },
+  sidebarDivider: {
+    height:          1,
+    backgroundColor: C.border,
+    marginVertical:  SPACING.sm,
+    marginHorizontal: 8,
+  },
+  sidebarLabel: {
+    color:             C.textMuted,
+    fontSize:          10,
+    fontWeight:        "700",
+    letterSpacing:     1.1,
+    paddingHorizontal: 12,
+    marginBottom:      4,
+    textTransform:     "uppercase",
+  } as any,
+  sidebarEmpty: {
+    color:             C.textMuted,
+    fontSize:          FONT_SIZE.xs,
+    paddingHorizontal: 12,
+    fontStyle:         "italic",
+  },
+  catalogRow: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    gap:               8,
+    paddingHorizontal: 8,
+    paddingVertical:   5,
+    borderRadius:      RADIUS.sm,
+    marginHorizontal:  4,
+    marginBottom:      1,
+  },
+  catalogThumb: {
+    width:           26,
+    height:          26,
+    borderRadius:    4,
+    backgroundColor: C.surfaceHigh,
+    alignItems:      "center",
+    justifyContent:  "center",
+    overflow:        "hidden",
+    flexShrink:      0,
+  },
+  catalogName: {
+    flex:       1,
+    color:      C.textSecondary,
+    fontSize:   FONT_SIZE.xs,
+    fontWeight: "500",
+  },
+
+  // Content
+  contentOuter: {
+    flex:            1,
+    backgroundColor: C.bg,
+    overflow:        "hidden",
+  },
+  contentInner: {
+    flex:      1,
+    maxWidth:  1080,
+    width:     "100%",
+    alignSelf: "center",
+  },
+});

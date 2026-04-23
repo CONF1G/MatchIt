@@ -1,42 +1,73 @@
-// src/services/lobby.ts
 import { supabase } from './supabase';
+import type { Lobby, LobbyParticipant, ParticipantWithProfile, ServiceResponse } from '../types/database';
 
-export const createMatch = async (mode: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("User must be authenticated");  
-  const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+export async function fetchLobby(lobbyId: string): Promise<ServiceResponse<Lobby>> {
   const { data, error } = await supabase
-    .from('matches')
-    .insert({ host_id: user.id, mode, status: 'waiting', invite_code: inviteCode }) 
+    .from('lobbies')
+    .select('*')
+    .eq('id', lobbyId)
+    .single();
+  if (error) return { data: null, error: error.message };
+  return { data, error: null };
+}
+
+export async function fetchLobbyParticipants(lobbyId: string): Promise<ServiceResponse<ParticipantWithProfile[]>> {
+  const { data, error } = await supabase
+    .from('lobby_participants')
+    .select('*, profiles(username, display_name, avatar_url)')
+    .eq('lobby_id', lobbyId)
+    .is('left_at', null);
+  if (error) return { data: null, error: error.message };
+  return { data: data as ParticipantWithProfile[], error: null };
+}
+
+export async function joinLobby(lobbyId: string): Promise<ServiceResponse<LobbyParticipant>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { data: null, error: 'Not authenticated' };
+  const { data, error } = await supabase
+    .from('lobby_participants')
+    .upsert({ lobby_id: lobbyId, user_id: session.user.id, role: 'player' }, { onConflict: 'lobby_id,user_id' })
     .select()
     .single();
-  if (error) throw error;
-  await joinMatch(data.id);
-  return data;
-};
+  if (error) return { data: null, error: error.message };
+  return { data, error: null };
+}
 
-export const joinMatch = async (matchId: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("User must be authenticated"); 
+export async function leaveLobby(lobbyId: string): Promise<ServiceResponse<null>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { data: null, error: 'Not authenticated' };
   const { error } = await supabase
-    .from('match_players')
-    .upsert({ match_id: matchId, user_id: user.id }, { onConflict: 'match_id,user_id' });
-  if (error) throw error;
-};
+    .from('lobby_participants')
+    .update({ left_at: new Date().toISOString() })
+    .eq('lobby_id', lobbyId)
+    .eq('user_id', session.user.id);
+  if (error) return { data: null, error: error.message };
+  return { data: null, error: null };
+}
 
-export const fetchMatchPlayers = async (matchId: string) => {
-  const { data, error } = await supabase
-    .from('match_players')
-    .select('*, profiles(username, avatar_url)')
-    .eq('match_id', matchId);
-  if (error) throw error;
-  return data;
-};
+export async function startLobby(lobbyId: string): Promise<ServiceResponse<null>> {
+  const { error } = await supabase
+    .from('lobbies')
+    .update({ status: 'in_progress', started_at: new Date().toISOString() })
+    .eq('id', lobbyId);
+  if (error) return { data: null, error: error.message };
+  return { data: null, error: null };
+}
 
-export const subscribeToMatchPlayers = (matchId: string, onUpdate: () => void) => {
-  const channel = supabase
-    .channel(`match_players:${matchId}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${matchId}` }, onUpdate)
+export function subscribeToLobby(
+  lobbyId: string,
+  onParticipantsChange: () => void,
+  onStatusChange: (status: string) => void,
+) {
+  return supabase
+    .channel(`lobby:${lobbyId}`)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'lobby_participants',
+      filter: `lobby_id=eq.${lobbyId}`,
+    }, onParticipantsChange)
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'lobbies',
+      filter: `id=eq.${lobbyId}`,
+    }, (payload) => onStatusChange((payload.new as any).status))
     .subscribe();
-  return channel;
-};
+}

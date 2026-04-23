@@ -16,13 +16,13 @@ export async function getLobbyByCode(
   code: string
 ): Promise<{ data: any | null; error: string | null }> {
   const { data, error } = await supabase
-    .from("matches")
+    .from("lobbies")
     .select("id, mode, status, invite_code, host_id")
     .eq("invite_code", code.trim().toUpperCase())
     .single();
 
   if (error || !data) return { data: null, error: "Lobby not found. Check your invite code." };
-  if (data.status === "completed") return { data: null, error: "This session has already ended." };
+  if (data.status === "finished" || data.status === "cancelled") return { data: null, error: "This session has already ended." };
   return { data, error: null };
 }
 
