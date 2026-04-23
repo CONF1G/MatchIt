@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, ScrollView,
-  Pressable, Image, Alert, Switch, FlatList,
+  Pressable, Image, Alert, FlatList,
 } from "react-native";
 import { router } from "expo-router";
 import { goBack } from "../../utils/navigation";
@@ -38,7 +38,6 @@ export default function CreateLobbyModal() {
   const [title,       setTitle]       = useState("");
   const [mode,        setMode]        = useState<LobbyMode>("first_match");
   const [maxPlayers,  setMaxPlayers]  = useState<number>(LOBBY.DEFAULT_MAX_PLAYERS);
-  const [isPublic,    setIsPublic]    = useState(false);
   const [catalogId,   setCatalogId]   = useState<string | null>(null);
   const [catalogs,    setCatalogs]    = useState<Catalog[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
@@ -67,7 +66,7 @@ export default function CreateLobbyModal() {
           title:       title.trim() || null,
           mode,
           max_players: maxPlayers,
-          is_public:   isPublic,
+          is_public:   false,
           status:      "waiting",
         })
         .select()
@@ -186,21 +185,6 @@ export default function CreateLobbyModal() {
           <Text style={styles.stepperHint}>
             Minim {LOBBY.MIN_PLAYERS} · Maxim {LOBBY.MAX_PLAYERS} jucători
           </Text>
-        </View>
-
-        {/* ── Vizibilitate ── */}
-        <View style={[styles.field, styles.toggleRow]}>
-          <View style={styles.toggleInfo}>
-            <Ionicons name="globe-outline" size={18} color={COLORS.textMuted} style={{ marginBottom: 2 }} />
-            <Text style={styles.toggleLabel}>Lobby public</Text>
-            <Text style={styles.toggleSubtitle}>Oricine poate vedea și intra</Text>
-          </View>
-          <Switch
-            value={isPublic}
-            onValueChange={setIsPublic}
-            trackColor={{ false: COLORS.border, true: COLORS.accent }}
-            thumbColor={COLORS.bg}
-          />
         </View>
 
         {/* ── Selectare catalog ── */}

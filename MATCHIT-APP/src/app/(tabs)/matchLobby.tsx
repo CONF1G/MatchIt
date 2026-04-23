@@ -11,6 +11,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 import { supabase } from "../../services/supabase";
+import { joinLobby } from "../../services/lobby";
 import LogoImg from "../../../assets/logo.png";
 
 const C = COLORS;
@@ -39,23 +40,28 @@ export default function MatchLanding() {
       .eq("invite_code", trimmed)
       .maybeSingle();
 
-    setJoining(false);
-
     if (!lobby) {
+      setJoining(false);
       Alert.alert("Not found", "No active lobby with that code.");
       return;
     }
     if (lobby.status === "finished" || lobby.status === "cancelled") {
+      setJoining(false);
       Alert.alert("Lobby closed", "This lobby has already ended.");
+      return;
+    }
+
+    const { error: joinError } = await joinLobby(lobby.id);
+    setJoining(false);
+
+    if (joinError) {
+      Alert.alert("Error", joinError);
       return;
     }
 
     setJoinModal(false);
     setCode("");
-    router.push({
-      pathname: "/(tabs)/matchLobby" as any,
-      params:   { matchId: lobby.id },
-    });
+    router.push(`/lobby/${lobby.id}` as any);
   };
 
   return (

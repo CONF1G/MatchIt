@@ -88,11 +88,11 @@ export default function ResultsScreen() {
           })
           .subscribe(async (status) => {
             if (status === "SUBSCRIBED") {
-              const { data: { user } } = await supabase.auth.getUser();
+              const { data: { session } } = await supabase.auth.getSession();
               await channel.track({
                 type:        amGuest ? "guest" : "user",
-                id:          amGuest ? (guestId ?? "guest") : (user?.id ?? "anon"),
-                displayName: amGuest ? (guestName ?? "Guest") : (user?.email?.split("@")[0] ?? "Unknown"),
+                id:          amGuest ? (guestId ?? "guest") : (session?.user.id ?? "anon"),
+                displayName: amGuest ? (guestName ?? "Guest") : (session?.user.email?.split("@")[0] ?? "Unknown"),
                 isHost:      false,
               });
 
@@ -123,7 +123,7 @@ export default function ResultsScreen() {
     // Fallback: load match metadata and recent photos as placeholder
     try {
       const { data: match } = await supabase
-        .from("matches")
+        .from("lobbies")
         .select("catalog_id, mode")
         .eq("id", matchId)
         .single();
@@ -151,10 +151,10 @@ export default function ResultsScreen() {
   };
 
   const handleExit = async () => {
-    // Mark match as finished
+    // Mark lobby as finished
     await supabase
-      .from("matches")
-      .update({ status: "finished" })
+      .from("lobbies")
+      .update({ status: "finished", finished_at: new Date().toISOString() })
       .eq("id", matchId);
 
     if (amGuest) {

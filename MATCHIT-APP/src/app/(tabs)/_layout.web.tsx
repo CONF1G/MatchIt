@@ -149,12 +149,12 @@ export default function WebLayout() {
 
         {/* Sidebar */}
         <View style={styles.sidebar}>
-          <nav style={{ display: "flex", flexDirection: "column", gap: 2, padding: 8 } as any}>
-            <SidebarItem icon="home-outline"           label="Home"    href="/"              active={activeNav === "/"}              onPress={() => navTo("/")} />
-            <SidebarItem icon="search-outline"         label="Search"  href="/search"        active={activeNav === "/search"}        onPress={() => navTo("/(tabs)/search")} />
-            <SidebarItem icon="game-controller-outline" label="Match"  href="/matchLobby"    active={activeNav === "/matchLobby"}    onPress={() => navTo("/(tabs)/matchLobby")} />
-            <SidebarItem icon="cloud-upload-outline"   label="Upload"  href="/post"          active={activeNav === "/post"}          onPress={() => navTo("/post")} />
-          </nav>
+          <View style={{ gap: 2, padding: 8 }}>
+            <SidebarItem icon="home-outline"            label="Home"   href="/"           active={activeNav === "/"}           onPress={() => navTo("/")} />
+            <SidebarItem icon="search-outline"          label="Search" href="/search"     active={activeNav === "/search"}     onPress={() => navTo("/(tabs)/search")} />
+            <SidebarItem icon="game-controller-outline" label="Match"  href="/matchLobby" active={activeNav === "/matchLobby"} onPress={() => navTo("/(tabs)/matchLobby")} />
+            <SidebarItem icon="cloud-upload-outline"    label="Upload" href="/post"       active={activeNav === "/post"}       onPress={() => navTo("/post")} />
+          </View>
 
           <View style={styles.sidebarDivider} />
 
