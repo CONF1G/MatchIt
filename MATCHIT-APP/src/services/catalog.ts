@@ -96,7 +96,8 @@ export async function fetchCatalogById(
 export async function createCatalog(
   input: NewCatalog
 ): Promise<ServiceResponse<Catalog>> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) return { data: null, error: "Trebuie să fii autentificat" };
 
   const { data, error } = await supabase
@@ -156,7 +157,8 @@ export async function deleteCatalog(
 export async function addPhoto(
   input: NewPhoto
 ): Promise<ServiceResponse<Photo>> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) return { data: null, error: "Trebuie să fii autentificat" };
 
   const { data, error } = await supabase
@@ -210,7 +212,8 @@ export async function updatePhotoOrder(
 export async function toggleCatalogLike(
   catalogId: string
 ): Promise<ServiceResponse<{ isLiked: boolean }>> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) return { data: null, error: "Trebuie să fii autentificat" };
 
   // Verificăm dacă există deja un like
@@ -245,7 +248,8 @@ export async function toggleCatalogLike(
 export async function checkCatalogLike(
   catalogId: string
 ): Promise<ServiceResponse<{ isLiked: boolean }>> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) return { data: { isLiked: false }, error: null };
 
   const { data } = await supabase

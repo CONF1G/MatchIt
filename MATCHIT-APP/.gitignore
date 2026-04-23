@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+#migrations
+supabase/
+
 # Expo
 .expo/
 dist/
@@ -39,3 +42,4 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+

@@ -1,0 +1,8 @@
+MATCHIT-APP/ supabase/ migrations/001_initial_schema.sql
+MATCHIT-APP/ supabase/ migrations/002_add_rls_policies.sql
+MATCHIT-APP/ supabase/ migrations/003_create_functions.sql
+MATCHIT-APP/ supabase/ migrations/004_social_features_tags_and_storage_policies.sql
+MATCHIT-APP/ supabase/ migrations/005_setup_storage_buckets_and_policies.sql
+MATCHIT-APP/ supabase/ migrations/006_seed_development_data.sql
+MATCHIT-APP/ supabase/ migrations/007_fix_rls_circular_dependencies_and_lobby_access.sql
+MATCHIT-APP/ supabase/ migrations/008_refactor_comments_schema_and_update_likes_logic.sql

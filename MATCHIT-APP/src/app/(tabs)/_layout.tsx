@@ -1,61 +1,150 @@
+import { View, StyleSheet } from "react-native";
 import { Tabs } from "expo-router";
-import { Image, View, TextInput } from "react-native";
-import { AntDesign, Feather } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LogoImg from "../../../assets/logo.png";
+import { COLORS, FONT_SIZE, RADIUS } from "../../config/theme";
 
-export default function TabLayout() { 
-    return (
-        <Tabs screenOptions={{ tabBarActiveTintColor: "black" }}>
-            <Tabs.Screen name="index" options={{
-                title: "Home",
-                headerTitle: "MatchIt",
-                tabBarShowLabel: false,
-                tabBarIcon: ({ color }) => <AntDesign name="home" size={24} color={color} />
-            }} />
-            // on enter open search screen 
+const C = COLORS;
 
-            <Tabs.Screen name="search" options={{
-                title: "Search",
-                tabBarShowLabel: false,
-                 headerRight: () => (
-                    <View style={{ flexDirection: 'row', alignItems: 'center' , backgroundColor: '#f0f0f0', borderRadius: 20, paddingHorizontal: 10 }}>
-                      <AntDesign name="search" size={18} color="gray" style={{ marginRight: 10 }} />
-                      <TextInput placeholder="Search..." style={{ width: 200, height: 40, backgroundColor: '#f0f0f0', borderRadius: 20, paddingHorizontal: 15 }} />
-                   </View>
-                  ),
-
-                tabBarIcon: ({color}) => <AntDesign name="search" size={24} color={color} />
-            }} />
-           <Tabs.Screen name="matchLobby" options={{
-                title: "MatchLobby",
-                tabBarShowLabel: false,
-                tabBarIcon: ({ focused }) => (
-                    <Image 
-                        source={LogoImg} 
-                        style={{ 
-                            width: 90, 
-                            height: 90, 
-                            resizeMode: 'contain',
-                            // Optional: make it slightly transparent when not focused
-                            opacity: focused ? 1 : 0.6 
-                        }} 
-                    />
-                )
-            }} />
-                <Tabs.Screen name="create" options={{
-                title: "Create",
-                tabBarShowLabel: false,
-                tabBarIcon: ({ color }) => <AntDesign name="plus" size={24} color={color} />
-            }} />
-            <Tabs.Screen name="profile" options={{
-                title: "Profile",
-                tabBarShowLabel: false,
-                tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color={color} />
-            }} />
-        
-            
-        
-        </Tabs>
-    );
-
+function MatchButton({ focused }: { focused: boolean }) {
+  return (
+    <View style={[styles.matchBtn, focused && styles.matchBtnActive]}>
+      <Image
+        source={LogoImg}
+        style={styles.matchLogo}
+        contentFit="contain"
+      />
+    </View>
+  );
 }
+
+export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Tabs
+      screenOptions={{
+        // ── Tab bar ──────────────────────────────────────────────────────
+        tabBarStyle: {
+          backgroundColor:  C.surface,
+          borderTopWidth:   1,
+          borderTopColor:   C.border,
+          height:           56 + insets.bottom,
+          paddingBottom:    insets.bottom,
+          paddingTop:       8,
+          elevation:        0,
+          shadowOpacity:    0,
+        },
+        tabBarActiveTintColor:   C.accent,
+        tabBarInactiveTintColor: C.textMuted,
+        tabBarShowLabel:         false,
+
+        // ── Header ───────────────────────────────────────────────────────
+        headerStyle: {
+          backgroundColor: C.bg,
+          borderBottomWidth: 1,
+          borderBottomColor: C.border,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        headerTintColor:  C.text,
+        headerTitleStyle: {
+          color:      C.text,
+          fontSize:   FONT_SIZE.lg,
+          fontWeight: "800",
+          letterSpacing: -0.3,
+        },
+        headerShadowVisible: false,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "MatchIt",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: "Search",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "search" : "search-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="matchLobby"
+        options={{
+          title: "Match Lobby",
+          tabBarIcon: ({ focused }: { focused: boolean }) => <MatchButton focused={focused} />,
+          headerShown: true,
+        }}
+      />
+
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: "Upload",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "add-circle" : "add-circle-outline"}
+              size={26}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={23}
+              color={color}
+            />
+          ),
+        }}
+      />
+    </Tabs>
+  );
+}
+
+const styles = StyleSheet.create({
+  matchBtn: {
+    width:           48,
+    height:          48,
+    borderRadius:    RADIUS.full,
+    backgroundColor: C.surfaceHigh,
+    alignItems:      "center",
+    justifyContent:  "center",
+    borderWidth:     1.5,
+    borderColor:     C.border,
+    marginBottom:    12,
+  },
+  matchBtnActive: {
+    backgroundColor: C.accentSubtle,
+    borderColor:     C.borderAccent,
+  },
+  matchLogo: {
+    width:  26,
+    height: 26,
+  },
+});

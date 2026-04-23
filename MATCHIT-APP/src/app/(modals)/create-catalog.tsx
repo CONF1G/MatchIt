@@ -9,6 +9,7 @@ import {
   Switch, FlatList,
 } from "react-native";
 import { router } from "expo-router";
+import { goBack } from "../../utils/navigation";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -78,7 +79,7 @@ export default function CreateCatalogModal() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       allowsMultipleSelection: true,
       quality: 1,
       selectionLimit: 20,
@@ -174,11 +175,11 @@ export default function CreateCatalogModal() {
 
       {/* Header modal */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.closeBtn} disabled={submitting}>
+        <Pressable onPress={() => goBack()} style={styles.closeBtn} disabled={submitting}>
           <Ionicons name="close" size={22} color={COLORS.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Catalog Nou</Text>
-        <View style={{ width: 36 }} /> {/* Spacer pentru centrare */}
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView

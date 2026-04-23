@@ -5,9 +5,10 @@
 import { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, ScrollView,
-  Pressable, Image, Alert, Switch, FlatList,
+  Pressable, Image, Alert, FlatList,
 } from "react-native";
 import { router } from "expo-router";
+import { goBack } from "../../utils/navigation";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -36,8 +37,7 @@ export default function CreateLobbyModal() {
 
   const [title,       setTitle]       = useState("");
   const [mode,        setMode]        = useState<LobbyMode>("first_match");
-  const [maxPlayers,  setMaxPlayers]  = useState(LOBBY.DEFAULT_MAX_PLAYERS);
-  const [isPublic,    setIsPublic]    = useState(false);
+  const [maxPlayers,  setMaxPlayers]  = useState<number>(LOBBY.DEFAULT_MAX_PLAYERS);
   const [catalogId,   setCatalogId]   = useState<string | null>(null);
   const [catalogs,    setCatalogs]    = useState<Catalog[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
@@ -66,7 +66,7 @@ export default function CreateLobbyModal() {
           title:       title.trim() || null,
           mode,
           max_players: maxPlayers,
-          is_public:   isPublic,
+          is_public:   false,
           status:      "waiting",
         })
         .select()
@@ -79,11 +79,18 @@ export default function CreateLobbyModal() {
       }
 
       // Auto-join host
-      await supabase.from("lobby_participants").insert({
+      const { error: joinError } = await supabase.from("lobby_participants").insert({ 
         lobby_id: data.id,
         user_id:  user.id,
         role:     "host",
       });
+        if (joinError) {  
+        // Rollback: delete the lobby since host couldn't join  
+        await supabase.from("lobbies").delete().eq("id", data.id);  
+        Alert.alert("Eroare", "Nu s-a putut crea lobby-ul");  
+        setSubmitting(false);  
+        return;  
+      } 
 
       router.replace(`/lobby/${data.id}`);
     } catch (e) {
@@ -104,7 +111,7 @@ export default function CreateLobbyModal() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.closeBtn} disabled={submitting}>
+        <Pressable onPress={() => goBack()} style={styles.closeBtn} disabled={submitting}>
           <Ionicons name="close" size={22} color={COLORS.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Lobby Nou</Text>
@@ -180,21 +187,6 @@ export default function CreateLobbyModal() {
           </Text>
         </View>
 
-        {/* ── Vizibilitate ── */}
-        <View style={[styles.field, styles.toggleRow]}>
-          <View style={styles.toggleInfo}>
-            <Ionicons name="globe-outline" size={18} color={COLORS.textMuted} style={{ marginBottom: 2 }} />
-            <Text style={styles.toggleLabel}>Lobby public</Text>
-            <Text style={styles.toggleSubtitle}>Oricine poate vedea și intra</Text>
-          </View>
-          <Switch
-            value={isPublic}
-            onValueChange={setIsPublic}
-            trackColor={{ false: COLORS.border, true: COLORS.accent }}
-            thumbColor={COLORS.bg}
-          />
-        </View>
-
         {/* ── Selectare catalog ── */}
         <View style={styles.field}>
           <Text style={styles.sectionLabel}>Catalog (opțional)</Text>
@@ -210,7 +202,7 @@ export default function CreateLobbyModal() {
             <Pressable
               style={styles.noCatalogsBox}
               onPress={() => {
-                router.back();
+                goBack();
                 setTimeout(() => router.push("/(modals)/create-catalog"), 300);
               }}
             >
