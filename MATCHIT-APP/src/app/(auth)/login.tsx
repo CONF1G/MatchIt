@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   View, Text, StyleSheet, Pressable,
   KeyboardAvoidingView, Platform, ScrollView,
-  Alert,
+  Alert, Modal, TextInput,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,9 +36,11 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn, signingIn, authError, clearError } = useAuth();
 
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [errors,   setErrors]   = useState<FormErrors>({});
+  const [email,      setEmail]      = useState("");
+  const [password,   setPassword]   = useState("");
+  const [errors,     setErrors]     = useState<FormErrors>({});
+  const [guestModal, setGuestModal] = useState(false);
+  const [guestCode,  setGuestCode]  = useState("");
 
   const handleLogin = async () => {
     const validationErrors = validate(email, password);
@@ -55,6 +57,17 @@ export default function LoginScreen() {
 
   const clearFieldError = (field: keyof FormErrors) =>
     setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+
+  const handleGuestJoin = () => {
+    const trimmed = guestCode.trim().toUpperCase();
+    if (trimmed.length < 4) {
+      Alert.alert("Invalid code", "Enter the invite code you received.");
+      return;
+    }
+    setGuestModal(false);
+    setGuestCode("");
+    router.push({ pathname: "/guest/join/[code]", params: { code: trimmed } });
+  };
 
   return (
     <KeyboardAvoidingView
@@ -141,6 +154,15 @@ export default function LoginScreen() {
           <View style={styles.divider} />
         </View>
 
+        {/* Guest join */}
+        <Pressable
+          style={({ pressed }) => [styles.guestBtn, pressed && { opacity: 0.75 }]}
+          onPress={() => setGuestModal(true)}
+        >
+          <Ionicons name="person-outline" size={18} color={COLORS.textSecondary} />
+          <Text style={styles.guestBtnText}>Join a match as Guest</Text>
+        </Pressable>
+
         {/* Link spre register */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Nu ai cont? </Text>
@@ -149,6 +171,42 @@ export default function LoginScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      {/* Guest code modal */}
+      <Modal visible={guestModal} transparent animationType="fade" onRequestClose={() => setGuestModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setGuestModal(false)} />
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Enter Invite Code</Text>
+            <Text style={styles.modalSubtitle}>Ask the host for their invite code</Text>
+
+            <TextInput
+              style={styles.codeInput}
+              value={guestCode}
+              onChangeText={(t) => setGuestCode(t.toUpperCase())}
+              placeholder="ABC123"
+              placeholderTextColor={COLORS.textMuted}
+              autoCapitalize="characters"
+              maxLength={8}
+              autoFocus
+              returnKeyType="go"
+              onSubmitEditing={handleGuestJoin}
+            />
+
+            <View style={styles.modalActions}>
+              <Pressable style={styles.cancelBtn} onPress={() => { setGuestModal(false); setGuestCode(""); }}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.continueBtn, !guestCode.trim() && { opacity: 0.45 }]}
+                onPress={handleGuestJoin}
+                disabled={!guestCode.trim()}
+              >
+                <Text style={styles.continueBtnText}>Continue</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -221,6 +279,75 @@ const styles = StyleSheet.create({
   },
   divider:     { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: COLORS.border },
   dividerText: { color: COLORS.textMuted, fontSize: FONT_SIZE.xs },
+
+  // Guest button
+  guestBtn: {
+    flexDirection:   "row",
+    alignItems:      "center",
+    justifyContent:  "center",
+    gap:             SPACING.sm,
+    paddingVertical: SPACING.md,
+    borderRadius:    RADIUS.md,
+    borderWidth:     1,
+    borderColor:     COLORS.border,
+    backgroundColor: COLORS.surface,
+  },
+  guestBtnText: {
+    color:      COLORS.textSecondary,
+    fontSize:   FONT_SIZE.base,
+    fontWeight: "600",
+  },
+
+  // Modal
+  modalBackdrop: {
+    flex:            1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent:  "flex-end",
+  },
+  modalSheet: {
+    backgroundColor:      COLORS.surface,
+    borderTopLeftRadius:  RADIUS.xxl,
+    borderTopRightRadius: RADIUS.xxl,
+    padding:              SPACING.xl,
+    paddingBottom:        SPACING.xxl,
+    gap:                  SPACING.md,
+  },
+  modalTitle:    { color: COLORS.text,     fontSize: FONT_SIZE.xl,  fontWeight: "800" },
+  modalSubtitle: { color: COLORS.textMuted, fontSize: FONT_SIZE.sm },
+  codeInput: {
+    height:            60,
+    backgroundColor:   COLORS.bg,
+    borderRadius:      RADIUS.lg,
+    borderWidth:       1,
+    borderColor:       COLORS.border,
+    paddingHorizontal: SPACING.lg,
+    color:             COLORS.text,
+    fontSize:          28,
+    fontWeight:        "800",
+    letterSpacing:     6,
+    textAlign:         "center",
+  },
+  modalActions:  { flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.sm },
+  cancelBtn: {
+    flex:            1,
+    alignItems:      "center",
+    justifyContent:  "center",
+    paddingVertical: SPACING.md,
+    borderRadius:    RADIUS.lg,
+    backgroundColor: COLORS.bg,
+    borderWidth:     1,
+    borderColor:     COLORS.border,
+  },
+  cancelBtnText:   { color: COLORS.textMuted, fontSize: FONT_SIZE.base, fontWeight: "700" },
+  continueBtn: {
+    flex:            1,
+    alignItems:      "center",
+    justifyContent:  "center",
+    paddingVertical: SPACING.md,
+    borderRadius:    RADIUS.lg,
+    backgroundColor: COLORS.accent,
+  },
+  continueBtnText: { color: COLORS.bg, fontSize: FONT_SIZE.base, fontWeight: "800" },
 
   // Footer
   footer: {

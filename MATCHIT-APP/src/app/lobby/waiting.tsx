@@ -30,6 +30,7 @@ export default function LobbyWaitingScreen() {
   const [members,   setMembers]   = useState<PresenceMember[]>([]);
   const [loading,   setLoading]   = useState(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const modeRef    = useRef<string>("first_match");
 
   // ── Load match metadata ────────────────────────────────────────────────────
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function LobbyWaitingScreen() {
         .select("id, mode, status, invite_code, host_id")
         .eq("id", matchId)
         .single();
-      if (!error && data) setMatch(data);
+      if (!error && data) { setMatch(data); modeRef.current = data.mode ?? "first_match"; }
       setLoading(false);
     })();
   }, [matchId]);
@@ -60,11 +61,26 @@ export default function LobbyWaitingScreen() {
         setMembers(all);
       })
       .on("broadcast", { event: "match_started" }, () => {
-        // Host broadcast start → navigate to swipe
         router.replace({
           pathname: "/lobby/swipe",
-          params:   { matchId, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
+          params:   { matchId, mode: modeRef.current, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
         });
+      })
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "lobbies",
+        filter: `id=eq.${matchId}`,
+      }, (payload) => {
+        const status = (payload.new as any).status;
+        if (status === "in_progress") {
+          router.replace({
+            pathname: "/lobby/swipe",
+            params:   { matchId, mode: modeRef.current, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
+          });
+        }
+        if (status === "cancelled" || status === "finished") {
+          Alert.alert("Lobby closed", "The host ended the session.");
+          router.replace("/guest/join/[code]" as any);
+        }
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, Pressable, Animated,
-  PanResponder, ActivityIndicator, Alert, Dimensions,
+  PanResponder, ActivityIndicator, Alert, Dimensions, Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,7 +15,9 @@ import { SWIPE } from "../../config/constants";
 
 const C = COLORS;
 const { width: SW, height: SH } = Dimensions.get("window");
-const CARD_H = SH * 0.58;
+const IS_WEB = Platform.OS === "web";
+const CARD_W = IS_WEB ? Math.min(SW - SPACING.lg * 2, 520) : SW - SPACING.lg * 2;
+const CARD_H = IS_WEB ? CARD_W * 1.25 : SH * 0.58;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,10 +98,16 @@ function SwipeCard({
   const likeOp   = useRef(new Animated.Value(0)).current;
   const nopeOp   = useRef(new Animated.Value(0)).current;
 
+  // Refs so PanResponder (created once at mount) always reads latest values
+  const isTopRef  = useRef(isTop);
+  const onSwipeRef = useRef(onSwipe);
+  useEffect(() => { isTopRef.current  = isTop;   }, [isTop]);
+  useEffect(() => { onSwipeRef.current = onSwipe; }, [onSwipe]);
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isTop,
-      onMoveShouldSetPanResponder:  () => isTop,
+      onStartShouldSetPanResponder: () => isTopRef.current,
+      onMoveShouldSetPanResponder:  () => isTopRef.current,
       onPanResponderMove: (_, { dx, dy }) => {
         pan.setValue({ x: dx, y: dy });
         const ratio = dx / SWIPE.THRESHOLD;
@@ -114,7 +122,7 @@ function SwipeCard({
             toValue:         { x: dir * SW * 1.5, y: 0 },
             duration:        ANIMATION.durationNormal,
             useNativeDriver: true,
-          }).start(() => onSwipe(dx > 0 ? "like" : "dislike"));
+          }).start(() => onSwipeRef.current(dx > 0 ? "like" : "dislike"));
         } else {
           Animated.spring(pan, {
             toValue:         { x: 0, y: 0 },
@@ -198,13 +206,17 @@ export default function SwipeScreen() {
   const [matchedPhoto, setMatchedPhoto] = useState<PhotoCard | null>(null);
   const [playerCount,  setPlayerCount]  = useState(1);
   const [done,         setDone]         = useState(false);
+  const [waiting,      setWaiting]      = useState(false);
 
   const myId      = useRef<string>("");
   const photosRef = useRef<PhotoCard[]>([]);
   const firstMatchDoneRef = useRef(false);
+  const winnerPhotoRef    = useRef<PhotoCard | null>(null);
   // photoId → Set of playerIds who liked it
-  const likedBy    = useRef<Map<string, Set<string>>>(new Map());
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const likedBy        = useRef<Map<string, Set<string>>>(new Map());
+  const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const donePlayersRef = useRef<Set<string>>(new Set());
+  const playerCountRef = useRef(1);
 
   // ── Identify self ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -264,15 +276,21 @@ export default function SwipeScreen() {
   useEffect(() => {
     if (!matchId) return;
 
-    const channel = supabase.channel(`match-presence:${matchId}`);
+    const channel = supabase.channel(`match-presence:${matchId}`, {
+      config: { broadcast: { self: true } },
+    });
     channelRef.current = channel;
 
     channel
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
-        setPlayerCount(Object.values(state).flat().length || 1);
+        const count = Object.values(state).flat().length || 1;
+        setPlayerCount(count);
+        playerCountRef.current = count;
       })
       .on("broadcast", { event: "player_swipe" }, ({ payload }: { payload: SwipePayload }) => {
+        // Skip own swipes — already tracked locally in handleSwipe
+        if (payload.playerId === myId.current) return;
         if (payload.action !== "like" && payload.action !== "super_like") return;
 
         const set = likedBy.current.get(payload.photoId) ?? new Set();
@@ -286,26 +304,37 @@ export default function SwipeScreen() {
             const photo = photosRef.current.find((p) => p.id === payload.photoId);
             if (photo) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              setMatchedPhoto(photo);
-              // Broadcast to all so everyone shows the match overlay
-              channel.send({
-                type:    "broadcast",
-                event:   "match_found",
-                payload: { photoId: photo.id, imageUrl: photo.url, title: photo.title ?? null, matchedBy: [...set] } satisfies MatchPayload,
-              });
+              if (mode !== "deck") setMatchedPhoto(photo);
+              // Broadcast to all so everyone shows the match overlay (first_match only)
+              if (mode !== "deck") {
+                channel.send({
+                  type:    "broadcast",
+                  event:   "match_found",
+                  payload: { photoId: photo.id, imageUrl: photo.url, title: photo.title ?? null, matchedBy: [...set] } satisfies MatchPayload,
+                });
+              }
             }
           }
           return count;
         });
       })
       .on("broadcast", { event: "match_found" }, ({ payload }: { payload: MatchPayload }) => {
+        if (mode === "deck") return;
         const photo = photosRef.current.find((p) => p.id === payload.photoId);
         if (!photo) return;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        setMatchedPhoto((cur) => cur ?? photo); // don't override if already showing one
+        setMatchedPhoto((cur) => cur ?? photo);
         if (mode === "first_match" && !firstMatchDoneRef.current) {
           firstMatchDoneRef.current = true;
+          winnerPhotoRef.current = photo;
           setTimeout(() => setDone(true), 3000);
+        }
+      })
+      .on("broadcast", { event: "player_done" }, ({ payload }: { payload: { playerId: string } }) => {
+        donePlayersRef.current.add(payload.playerId);
+        if (donePlayersRef.current.size >= playerCountRef.current) {
+          // All players finished — short delay to absorb any late swipe events
+          setTimeout(() => setDone(true), 800);
         }
       })
       .subscribe(async (status) => {
@@ -353,7 +382,16 @@ export default function SwipeScreen() {
       setIndex(next);
 
       if (next >= photos.length) {
-        setDone(true);
+        if (mode === "deck") {
+          setWaiting(true);
+          channelRef.current?.send({
+            type:    "broadcast",
+            event:   "player_done",
+            payload: { playerId: myId.current },
+          });
+        } else {
+          setDone(true);
+        }
       }
     },
     [index, photos]
@@ -369,13 +407,50 @@ export default function SwipeScreen() {
   useEffect(() => {
     if (!done) return;
     const t = setTimeout(() => {
+      // For deck mode, serialize ranked vote data so results screen can show ranking
+      let deckVotes = "";
+      if (mode === "deck") {
+        const ranked = [...likedBy.current.entries()]
+          .filter(([, set]) => set.size > 0)
+          .map(([photoId, set]) => ({ photoId, votes: set.size }))
+          .sort((a, b) => b.votes - a.votes);
+        deckVotes = JSON.stringify(ranked);
+      }
+
       router.replace({
         pathname: "/lobby/results",
-        params:   { matchId, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
+        params:   {
+          matchId,
+          mode,
+          isGuest:          isGuest ?? "0",
+          guestId:          guestId ?? "",
+          guestName:        guestName ?? "",
+          winnerPhotoId:    winnerPhotoRef.current?.id ?? "",
+          winnerPhotoUrl:   winnerPhotoRef.current?.url ?? "",
+          winnerPhotoTitle: winnerPhotoRef.current?.title ?? "",
+          deckVotes,
+        },
       });
     }, 1200);
     return () => clearTimeout(t);
   }, [done]);
+
+  // ─── Waiting for other players (deck mode) ───────────────────────────────
+  if (waiting && !done) {
+    const finished = donePlayersRef.current.size;
+    const total    = playerCountRef.current;
+    return (
+      <View style={[styles.center, { backgroundColor: C.bg }]}>
+        <ActivityIndicator size="large" color={C.accent} />
+        <Text style={[styles.loadingText, { marginTop: SPACING.lg, fontSize: FONT_SIZE.lg, fontWeight: "700" }]}>
+          Waiting for others…
+        </Text>
+        <Text style={[styles.loadingText, { color: C.textMuted, marginTop: SPACING.xs }]}>
+          {finished} / {total} players done
+        </Text>
+      </View>
+    );
+  }
 
   // ─── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
@@ -568,7 +643,7 @@ const styles = StyleSheet.create({
 
   card: {
     position:        "absolute",
-    width:           SW - SPACING.lg * 2,
+    width:           CARD_W,
     height:          CARD_H,
     borderRadius:    RADIUS.xl,
     overflow:        "hidden",
@@ -674,7 +749,7 @@ const styles = StyleSheet.create({
     zIndex:          100,
   },
   matchCard: {
-    width:           SW - SPACING.xl * 2,
+    width:           CARD_W,
     borderRadius:    RADIUS.xl,
     overflow:        "hidden",
     backgroundColor: C.surface,
