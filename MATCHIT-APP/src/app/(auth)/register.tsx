@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   View, Text, StyleSheet, Pressable,
   KeyboardAvoidingView, Platform, ScrollView,
-  Alert, ActivityIndicator,
+  ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
 import { goBack } from "../../utils/navigation";
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth }  from "../../hooks/useAuth";
 import { Input }    from "../../components/common/Input";
 import { Button }   from "../../components/common/Button";
+import { supabase } from "../../services/supabase";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 // ─── Validare ─────────────────────────────────────────────────────────────────
@@ -95,11 +96,10 @@ export default function RegisterScreen() {
     const ok = await signUp(email, password, username);
 
     if (ok) {
-      Alert.alert(
-        "Cont creat! 🎉",
-        "Verifică-ți emailul pentru confirmare.",
-        [{ text: "OK", onPress: () => router.replace("/(auth)/login") }]
-      );
+      // If Supabase auto-confirmed the account a session exists immediately → go to onboarding.
+      // If email confirmation is required there is no session yet → go to login first.
+      const { data: { session } } = await supabase.auth.getSession();
+      router.replace(session ? "/(auth)/onboarding" : "/(auth)/login");
     }
   };
 

@@ -12,6 +12,7 @@ import {
   getLobbyByCode,
   saveGuestSession,
 } from "../../../services/guest";
+import { supabase } from "../../../services/supabase";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../../config/theme";
 
 const C = COLORS;
@@ -76,6 +77,19 @@ export default function GuestJoinScreen() {
 
     setNameError(null);
     setJoining(true);
+
+    // Check current active participant count against max_players
+    const { count } = await supabase
+      .from("lobby_participants")
+      .select("id", { count: "exact", head: true })
+      .eq("lobby_id", lobby.id)
+      .is("left_at", null);
+
+    if ((count ?? 0) >= lobby.max_players) {
+      setNameError("This lobby is full");
+      setJoining(false);
+      return;
+    }
 
     const guestId = Math.random().toString(36).substring(2, 10);
 

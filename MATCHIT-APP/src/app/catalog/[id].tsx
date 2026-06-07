@@ -12,6 +12,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { fetchCatalogById, toggleCatalogLike, checkCatalogLike, deleteCatalog } from "../../services/catalog";
 import { fetchPhotosByCatalog, deletePhoto } from "../../services/photo";
 import { normalizeStorageUrl } from "../../services/storage";
+import { checkCatalogSaved, saveCatalog, unsaveCatalog } from "../../services/social";
+import { PhotoMosaic } from "../../components/catalog/CatalogThumb";
 import { goBack } from "../../utils/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
@@ -69,23 +71,26 @@ export default function CatalogScreen() {
   const { id }  = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
 
-  const [catalog,    setCatalog]    = useState<any>(null);
-  const [photos,     setPhotos]     = useState<Photo[]>([]);
-  const [liked,      setLiked]      = useState(false);
-  const [likeCount,  setLikeCount]  = useState(0);
-  const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [catalog,     setCatalog]    = useState<any>(null);
+  const [photos,      setPhotos]     = useState<Photo[]>([]);
+  const [liked,       setLiked]      = useState(false);
+  const [likeCount,   setLikeCount]  = useState(0);
+  const [saved,       setSaved]      = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [loading,     setLoading]    = useState(true);
+  const [refreshing,  setRefreshing] = useState(false);
 
   const isOwner = user?.id === catalog?.owner_id;
 
   const load = useCallback(async () => {
     if (!id) return;
-    const [catRes, photosRes, likeRes] = await Promise.all([
+    const [catRes, photosRes, likeRes, isSaved] = await Promise.all([
       fetchCatalogById(id),
       fetchPhotosByCatalog(id),
       user
         ? checkCatalogLike(id)
         : Promise.resolve({ data: { isLiked: false }, error: null }),
+      user ? checkCatalogSaved(id) : Promise.resolve(false),
     ]);
 
     if (catRes.data)    { setCatalog(catRes.data); setLikeCount(catRes.data.likes_count ?? 0); }
@@ -93,10 +98,26 @@ export default function CatalogScreen() {
       (photosRes.data as Photo[]).map((p) => ({ ...p, url: normalizeStorageUrl(p.url) ?? p.url }))
     );
     if (likeRes.data)   setLiked(likeRes.data.isLiked);
+    setSaved(isSaved);
 
     setLoading(false);
     setRefreshing(false);
   }, [id, user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaveLoading(true);
+    if (saved) {
+      setSaved(false);
+      const { error } = await unsaveCatalog(id);
+      if (error) setSaved(true);
+    } else {
+      setSaved(true);
+      const { error } = await saveCatalog(id);
+      if (error) setSaved(false);
+    }
+    setSaveLoading(false);
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -176,8 +197,8 @@ export default function CatalogScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Floating header */}
-      <View style={styles.header}>
+      {/* Floating header — positioned below the status bar */}
+      <View style={[styles.header, { top: insets.top }]}>
         <Pressable style={styles.floatBtn} onPress={() => goBack()}>
           <Ionicons name="chevron-back" size={22} color={C.text} />
         </Pressable>
@@ -185,6 +206,19 @@ export default function CatalogScreen() {
           <Pressable style={styles.floatBtn} onPress={handleShare}>
             <Ionicons name="share-outline" size={20} color={C.text} />
           </Pressable>
+          {user && !isOwner && (
+            <Pressable
+              style={styles.floatBtn}
+              onPress={handleSave}
+              disabled={saveLoading}
+            >
+              <Ionicons
+                name={saved ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color={saved ? C.accent : C.text}
+              />
+            </Pressable>
+          )}
           {isOwner && (
             <>
               <Pressable
@@ -220,13 +254,16 @@ export default function CatalogScreen() {
             {/* Cover */}
             {catalog.cover_url ? (
               <Image
-                source={{ uri: catalog.cover_url }}
+                source={{ uri: normalizeStorageUrl(catalog.cover_url) ?? catalog.cover_url }}
                 style={styles.cover}
                 contentFit="cover"
               />
             ) : (
               <View style={[styles.cover, styles.coverFallback]}>
-                <Ionicons name="albums" size={44} color={C.textMuted} />
+                {photos.length > 0
+                  ? <PhotoMosaic photos={photos.slice(0, 4).map(p => p.url)} />
+                  : <Ionicons name="albums" size={44} color={C.textMuted} />
+                }
               </View>
             )}
 
@@ -290,10 +327,7 @@ export default function CatalogScreen() {
                   <Pressable
                     style={styles.accentPill}
                     onPress={() =>
-                      router.push({
-                        pathname: "/post",
-                        params:   { catalogId: id },
-                      } as any)
+                      router.push({ pathname: "/post", params: { catalogId: id } } as any)
                     }
                   >
                     <Ionicons name="add" size={15} color={C.bg} />
@@ -442,6 +476,11 @@ const styles = StyleSheet.create({
   ownerName:     { color: C.textMuted, fontSize: FONT_SIZE.sm, fontWeight: "600" },
 
   statsRow: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           SPACING.sm,
+  },
+  actionsRow: {
     flexDirection: "row",
     alignItems:    "center",
     flexWrap:      "wrap",
