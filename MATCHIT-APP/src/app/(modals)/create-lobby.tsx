@@ -5,8 +5,9 @@
 import { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, ScrollView,
-  Pressable, Image, Alert, FlatList,
+  Pressable, Alert, FlatList,
 } from "react-native";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { goBack } from "../../utils/navigation";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,10 +15,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Input }  from "../../components/common/Input";
 import { Button } from "../../components/common/Button";
-import { supabase }            from "../../services/supabase";
-import { fetchUserCatalogs }   from "../../services/catalog";
-import { useAuth }             from "../../hooks/useAuth";
-import { Catalog, LobbyMode }  from "../../types/database";
+import { supabase }              from "../../services/supabase";
+import { fetchUserCatalogs }     from "../../services/catalog";
+import { fetchSavedCatalogs }    from "../../services/social";
+import { useAuth }               from "../../hooks/useAuth";
+import { Catalog, LobbyMode }   from "../../types/database";
 import { LOBBY }               from "../../config/constants";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
@@ -29,6 +31,60 @@ const MODES: Array<{ id: LobbyMode; label: string; icon: string; desc: string }>
   { id: "tournament",   label: "Tournament",   icon: "trophy",       desc: "Eliminare directă, bracket style" },
 ];
 
+// ─── Catalog row ──────────────────────────────────────────────────────────────
+
+function CatalogRow({
+  items,
+  selectedId,
+  onSelect,
+}: {
+  items:      any[];
+  selectedId: string | null;
+  onSelect:   (id: string | null) => void;
+}) {
+  return (
+    <FlatList
+      data={items}
+      keyExtractor={(item) => item.id ?? "none"}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: SPACING.sm, paddingVertical: SPACING.xs }}
+      renderItem={({ item }) => {
+        const isNone     = item.id === null;
+        const isSelected = isNone ? selectedId === null : selectedId === item.id;
+        return (
+          <Pressable
+            style={[styles.catalogOption, isSelected && styles.catalogOptionSelected]}
+            onPress={() => onSelect(isNone ? null : item.id)}
+          >
+            <View style={styles.catalogOptionImage}>
+              {item.cover_url ? (
+                <Image
+                  source={{ uri: item.cover_url }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                />
+              ) : (
+                <Ionicons
+                  name={isNone ? "close-circle-outline" : "images-outline"}
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              )}
+            </View>
+            <Text
+              style={[styles.catalogOptionTitle, isSelected && styles.catalogOptionTitleSelected]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+          </Pressable>
+        );
+      }}
+    />
+  );
+}
+
 // ─── Componenta ───────────────────────────────────────────────────────────────
 
 export default function CreateLobbyModal() {
@@ -38,16 +94,20 @@ export default function CreateLobbyModal() {
   const [title,       setTitle]       = useState("");
   const [mode,        setMode]        = useState<LobbyMode>("first_match");
   const [maxPlayers,  setMaxPlayers]  = useState<number>(LOBBY.DEFAULT_MAX_PLAYERS);
-  const [catalogId,   setCatalogId]   = useState<string | null>(null);
-  const [catalogs,    setCatalogs]    = useState<Catalog[]>([]);
-  const [loadingCats, setLoadingCats] = useState(true);
+  const [catalogId,     setCatalogId]     = useState<string | null>(null);
+  const [catalogs,      setCatalogs]      = useState<Catalog[]>([]);
+  const [savedCatalogs, setSavedCatalogs] = useState<Catalog[]>([]);
+  const [loadingCats,   setLoadingCats]   = useState(true);
   const [submitting,  setSubmitting]  = useState(false);
 
-  // Încărcăm cataloagele proprii pentru a putea selecta unul
   useEffect(() => {
     if (!user) return;
-    fetchUserCatalogs(user.id, true).then(({ data }) => {
-      if (data) setCatalogs(data);
+    Promise.all([
+      fetchUserCatalogs(user.id, true),
+      fetchSavedCatalogs(),
+    ]).then(([ownRes, savedRes]) => {
+      if (ownRes.data)   setCatalogs(ownRes.data);
+      if (savedRes.data) setSavedCatalogs(savedRes.data);
       setLoadingCats(false);
     });
   }, [user]);
@@ -198,47 +258,40 @@ export default function CreateLobbyModal() {
             <View style={styles.catalogsLoading}>
               <Text style={styles.loadingText}>Se încarcă cataloagele...</Text>
             </View>
-          ) : catalogs.length === 0 ? (
-            <Pressable
-              style={styles.noCatalogsBox}
-              onPress={() => {
-                goBack();
-                setTimeout(() => router.push("/(modals)/create-catalog"), 300);
-              }}
-            >
-              <Ionicons name="albums-outline" size={24} color={COLORS.textMuted} />
-              <Text style={styles.noCatalogsText}>Nu ai cataloage. Creează unul!</Text>
-            </Pressable>
           ) : (
-            <FlatList
-              data={[{ id: null, title: "Fără catalog", cover_url: null } as any, ...catalogs]}
-              keyExtractor={(item) => item.id ?? "none"}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: SPACING.sm, paddingVertical: SPACING.xs }}
-              renderItem={({ item }) => {
-                const isNone     = item.id === null;
-                const isSelected = isNone ? catalogId === null : catalogId === item.id;
+            <>
+              {/* No catalog + own catalogs */}
+              {catalogs.length === 0 ? (
+                <Pressable
+                  style={styles.noCatalogsBox}
+                  onPress={() => {
+                    goBack();
+                    setTimeout(() => router.push("/(modals)/create-catalog"), 300);
+                  }}
+                >
+                  <Ionicons name="albums-outline" size={24} color={COLORS.textMuted} />
+                  <Text style={styles.noCatalogsText}>Nu ai cataloage. Creează unul!</Text>
+                </Pressable>
+              ) : (
+                <CatalogRow
+                  items={[{ id: null, title: "None", cover_url: null } as any, ...catalogs]}
+                  selectedId={catalogId}
+                  onSelect={setCatalogId}
+                />
+              )}
 
-                return (
-                  <Pressable
-                    style={[styles.catalogOption, isSelected && styles.catalogOptionSelected]}
-                    onPress={() => setCatalogId(isNone ? null : item.id)}
-                  >
-                    <View style={styles.catalogOptionImage}>
-                      {item.cover_url ? (
-                        <Image source={{ uri: item.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                      ) : (
-                        <Ionicons name={isNone ? "close-circle-outline" : "images-outline"} size={20} color={COLORS.textMuted} />
-                      )}
-                    </View>
-                    <Text style={[styles.catalogOptionTitle, isSelected && styles.catalogOptionTitleSelected]} numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                  </Pressable>
-                );
-              }}
-            />
+              {/* Saved catalogs */}
+              {savedCatalogs.length > 0 && (
+                <>
+                  <Text style={styles.savedLabel}>Saved</Text>
+                  <CatalogRow
+                    items={savedCatalogs}
+                    selectedId={catalogId}
+                    onSelect={setCatalogId}
+                  />
+                </>
+              )}
+            </>
           )}
         </View>
       </ScrollView>
@@ -320,6 +373,15 @@ const styles = StyleSheet.create({
   toggleSubtitle: { color: COLORS.textMuted, fontSize: FONT_SIZE.xs },
 
   // Cataloage
+  savedLabel: {
+    color:         COLORS.textMuted,
+    fontSize:      FONT_SIZE.xs,
+    fontWeight:    "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginTop:     SPACING.md,
+    marginBottom:  SPACING.xs,
+  },
   catalogsLoading: { height: 90, alignItems: "center", justifyContent: "center" },
   loadingText: { color: COLORS.textMuted, fontSize: FONT_SIZE.sm },
   noCatalogsBox: {

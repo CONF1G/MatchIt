@@ -30,6 +30,7 @@ export default function LobbyWaitingScreen() {
   const [members,   setMembers]   = useState<PresenceMember[]>([]);
   const [loading,   setLoading]   = useState(true);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const modeRef    = useRef<string>("first_match");
 
   // ── Load match metadata ────────────────────────────────────────────────────
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function LobbyWaitingScreen() {
         .select("id, mode, status, invite_code, host_id")
         .eq("id", matchId)
         .single();
-      if (!error && data) setMatch(data);
+      if (!error && data) { setMatch(data); modeRef.current = data.mode ?? "first_match"; }
       setLoading(false);
     })();
   }, [matchId]);
@@ -62,7 +63,7 @@ export default function LobbyWaitingScreen() {
       .on("broadcast", { event: "match_started" }, () => {
         router.replace({
           pathname: "/lobby/swipe",
-          params:   { matchId, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
+          params:   { matchId, mode: modeRef.current, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
         });
       })
       .on("postgres_changes", {
@@ -73,7 +74,7 @@ export default function LobbyWaitingScreen() {
         if (status === "in_progress") {
           router.replace({
             pathname: "/lobby/swipe",
-            params:   { matchId, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
+            params:   { matchId, mode: modeRef.current, isGuest: isGuest ?? "0", guestId: guestId ?? "", guestName: guestName ?? "" },
           });
         }
         if (status === "cancelled" || status === "finished") {

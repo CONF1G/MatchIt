@@ -24,6 +24,34 @@ export async function fetchLobbyParticipants(lobbyId: string): Promise<ServiceRe
 export async function joinLobby(lobbyId: string): Promise<ServiceResponse<LobbyParticipant>> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { data: null, error: 'Not authenticated' };
+
+  // Fetch lobby and current active participant count in parallel
+  const [lobbyRes, countRes] = await Promise.all([
+    supabase.from('lobbies').select('max_players, status').eq('id', lobbyId).single(),
+    supabase.from('lobby_participants').select('id', { count: 'exact', head: true })
+      .eq('lobby_id', lobbyId).is('left_at', null),
+  ]);
+
+  if (lobbyRes.error) return { data: null, error: lobbyRes.error.message };
+  if (countRes.error) return { data: null, error: countRes.error.message };
+
+  const lobby   = lobbyRes.data;
+  const current = countRes.count ?? 0;
+
+  if (lobby.status !== 'waiting') return { data: null, error: 'Lobby already started' };
+
+  // Allow if already an active participant (upsert will be a no-op)
+  const { count: alreadyIn } = await supabase
+    .from('lobby_participants')
+    .select('id', { count: 'exact', head: true })
+    .eq('lobby_id', lobbyId)
+    .eq('user_id', session.user.id)
+    .is('left_at', null);
+
+  if ((alreadyIn ?? 0) === 0 && current >= lobby.max_players) {
+    return { data: null, error: 'Lobby is full' };
+  }
+
   const { data, error } = await supabase
     .from('lobby_participants')
     .upsert({ lobby_id: lobbyId, user_id: session.user.id, role: 'player' }, { onConflict: 'lobby_id,user_id' })

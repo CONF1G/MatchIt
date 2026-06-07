@@ -28,6 +28,7 @@ export default function LobbyScreen() {
   const insets        = useSafeAreaInsets();
   const { id }        = useLocalSearchParams<{ id: string }>();
   const channelRef    = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const modeRef       = useRef<string>("first_match");
 
   const [lobby,         setLobby]         = useState<Lobby | null>(null);
   const [participants,  setParticipants]  = useState<ParticipantWithProfile[]>([]);
@@ -53,7 +54,7 @@ export default function LobbyScreen() {
       fetchLobby(id),
       fetchLobbyParticipants(id),
     ]);
-    if (lobbyRes.data) setLobby(lobbyRes.data);
+    if (lobbyRes.data) { setLobby(lobbyRes.data); modeRef.current = lobbyRes.data.mode ?? "first_match"; }
     if (partRes.data)  setParticipants(partRes.data);
     setLoading(false);
   }, [id]);
@@ -69,7 +70,7 @@ export default function LobbyScreen() {
       () => reload(),
       (status) => {
         if (status === "in_progress") {
-          router.replace({ pathname: "/lobby/swipe", params: { matchId: id, mode: lobby?.mode ?? "first_match" } });
+          router.replace({ pathname: "/lobby/swipe", params: { matchId: id, mode: modeRef.current } });
         }
         if (status === "cancelled" || status === "finished") {
           Alert.alert("Lobby closed", "The host ended the session.");

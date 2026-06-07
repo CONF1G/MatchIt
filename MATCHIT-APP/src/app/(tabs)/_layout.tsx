@@ -77,6 +77,7 @@ export default function TabLayout() {
         name="search"
         options={{
           title: "Search",
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "search" : "search-outline"}
@@ -92,7 +93,7 @@ export default function TabLayout() {
         options={{
           title: "Match Lobby",
           tabBarIcon: ({ focused }: { focused: boolean }) => <MatchButton focused={focused} />,
-          headerShown: true,
+          headerShown: false,
         }}
       />
 
@@ -100,6 +101,7 @@ export default function TabLayout() {
         name="create"
         options={{
           title: "Upload",
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "add-circle" : "add-circle-outline"}
@@ -114,6 +116,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "person" : "person-outline"}
