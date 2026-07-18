@@ -4,7 +4,6 @@ import {
   TextInput, Alert, Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
@@ -12,7 +11,6 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 import { supabase } from "../../services/supabase";
 import { joinLobby } from "../../services/lobby";
-import LogoImg from "../../../assets/logo.png";
 
 const C = COLORS;
 
@@ -85,7 +83,6 @@ export default function MatchLanding() {
 
       {/* Hero */}
       <Animated.View entering={FadeInUp.duration(500)} style={styles.hero}>
-        <Image source={LogoImg} style={styles.logo} contentFit="contain" />
         <Text style={styles.heroTitle}>MatchIt</Text>
         <Text style={styles.heroSubtitle}>
           Swipe together, decide together.
@@ -120,21 +117,6 @@ export default function MatchLanding() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(260).springify()}>
-          <Pressable
-            style={({ pressed }) => [styles.card, styles.cardGuest, pressed && styles.cardPressed]}
-            onPress={() => router.push({ pathname: "/guest/join/[code]", params: { code: "" } })}
-          >
-            <View style={[styles.cardIcon, { backgroundColor: "#47FF9C18" }]}>
-              <Ionicons name="person-outline" size={28} color="#47FF9C" />
-            </View>
-            <View style={styles.cardText}>
-              <Text style={[styles.cardTitle, { color: "#47FF9C" }]}>Join as Guest</Text>
-              <Text style={styles.cardDesc}>No account needed — just enter your name and a code</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#47FF9C" />
-          </Pressable>
-        </Animated.View>
       </View>
 
       {/* Recent activity hint */}

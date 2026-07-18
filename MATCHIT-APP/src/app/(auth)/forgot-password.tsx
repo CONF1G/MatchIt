@@ -7,7 +7,7 @@ import {
   KeyboardAvoidingView, Platform, ScrollView,
 } from "react-native";
 import { router } from "expo-router";
-import { goBack } from "../../utils/navigation";
+import { goBack } from "../../services/navigation";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 

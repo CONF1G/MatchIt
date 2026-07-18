@@ -186,21 +186,7 @@ export async function deletePhoto(
   return { data: null, error: null };
 }
 
-/**
- * Actualizează ordinea pozelor dintr-un catalog.
- * @param updates Array de { id, sort_order }
- */
-export async function updatePhotoOrder(
-  updates: Array<{ id: string; sort_order: number }>
-): Promise<ServiceResponse<null>> {
-  // upsert în batch — mai eficient decât N update-uri separate
-  const { error } = await supabase
-    .from("photos")
-    .upsert(updates, { onConflict: "id" });
 
-  if (error) return { data: null, error: error.message };
-  return { data: null, error: null };
-}
 
 // ─── LIKE-URI ─────────────────────────────────────────────────────────────────
 

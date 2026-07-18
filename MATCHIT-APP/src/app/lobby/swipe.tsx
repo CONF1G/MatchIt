@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, Pressable, Animated,
+  View, Text, StyleSheet, Pressable, Animated, Modal,
   PanResponder, ActivityIndicator, Alert, Dimensions, Platform,
 } from "react-native";
 import { Image } from "expo-image";
@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "../../services/supabase";
+import { normalizeStorageUrl } from "../../services/storage";
 import { COLORS, SPACING, RADIUS, FONT_SIZE, ANIMATION } from "../../config/theme";
 import { SWIPE } from "../../config/constants";
 
@@ -52,7 +53,7 @@ type Params = {
 
 // ─── MatchOverlay ─────────────────────────────────────────────────────────────
 
-function MatchOverlay({ photo, onDismiss }: { photo: PhotoCard; onDismiss: () => void }) {
+function MatchOverlay({ photo, onDismiss, hideButton }: { photo: PhotoCard; onDismiss: () => void; hideButton?: boolean }) {
   const scale = useRef(new Animated.Value(0.7)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -66,18 +67,22 @@ function MatchOverlay({ photo, onDismiss }: { photo: PhotoCard; onDismiss: () =>
   }, []);
 
   return (
-    <Animated.View style={[styles.matchOverlay, { opacity }]}>
-      <Animated.View style={[styles.matchCard, { transform: [{ scale }] }]}>
-        <Image source={{ uri: photo.url }} style={styles.matchCardImage} contentFit="cover" />
-        <View style={styles.matchCardBody}>
-          <Text style={styles.matchTitle}>It's a Match!</Text>
-          {photo.title ? <Text style={styles.matchSubtitle}>{photo.title}</Text> : null}
-          <Pressable style={styles.matchDismissBtn} onPress={onDismiss}>
-            <Text style={styles.matchDismissText}>Keep Swiping</Text>
-          </Pressable>
-        </View>
+    <Modal transparent animationType="none" visible statusBarTranslucent>
+      <Animated.View style={[styles.matchOverlay, { opacity }]}>
+        <Animated.View style={[styles.matchCard, { transform: [{ scale }] }]}>
+          <Image source={{ uri: photo.url }} style={styles.matchCardImage} contentFit="cover" />
+          <View style={styles.matchCardBody}>
+            <Text style={styles.matchTitle}>It's a Match!</Text>
+            {photo.title ? <Text style={styles.matchSubtitle}>{photo.title}</Text> : null}
+            {!hideButton && (
+              <Pressable style={styles.matchDismissBtn} onPress={onDismiss}>
+                <Text style={styles.matchDismissText}>Keep Swiping</Text>
+              </Pressable>
+            )}
+          </View>
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </Modal>
   );
 }
 
@@ -207,6 +212,7 @@ export default function SwipeScreen() {
   const [playerCount,  setPlayerCount]  = useState(1);
   const [done,         setDone]         = useState(false);
   const [waiting,      setWaiting]      = useState(false);
+  const [doneCount,    setDoneCount]    = useState(0);
 
   const myId      = useRef<string>("");
   const photosRef = useRef<PhotoCard[]>([]);
@@ -251,7 +257,7 @@ export default function SwipeScreen() {
             .eq("catalog_id", match.catalog_id)
             .order("sort_order", { ascending: true })
             .limit(50);
-          photos = (data ?? []) as PhotoCard[];
+          photos = (data ?? []).map((p: any) => ({ ...p, url: normalizeStorageUrl(p.url) ?? p.url }));
         }
 
         // Fallback: recent public photos from any catalog
@@ -261,7 +267,7 @@ export default function SwipeScreen() {
             .select("id, url, title")
             .order("created_at", { ascending: false })
             .limit(30);
-          photos = (data ?? []) as PhotoCard[];
+          photos = (data ?? []).map((p: any) => ({ ...p, url: normalizeStorageUrl(p.url) ?? p.url }));
         }
 
         photosRef.current = photos;
@@ -297,9 +303,9 @@ export default function SwipeScreen() {
         set.add(payload.playerId);
         likedBy.current.set(payload.photoId, set);
 
-        // Match detected when ≥ 2 players liked the same photo
+        // Match detected when ALL players liked the same photo
         setPlayerCount((count) => {
-          const needed = Math.min(2, count);
+          const needed = count;
           if (set.size >= needed) {
             const photo = photosRef.current.find((p) => p.id === payload.photoId);
             if (photo) {
@@ -327,14 +333,24 @@ export default function SwipeScreen() {
         if (mode === "first_match" && !firstMatchDoneRef.current) {
           firstMatchDoneRef.current = true;
           winnerPhotoRef.current = photo;
-          setTimeout(() => setDone(true), 3000);
+          setTimeout(() => {
+            setWaiting(true);
+            if (!donePlayersRef.current.has(myId.current)) {
+              donePlayersRef.current.add(myId.current);
+              channelRef.current?.send({
+                type:    "broadcast",
+                event:   "player_done",
+                payload: { playerId: myId.current },
+              });
+              setDoneCount((c) => c + 1);
+            }
+          }, 3000);
         }
       })
       .on("broadcast", { event: "player_done" }, ({ payload }: { payload: { playerId: string } }) => {
-        donePlayersRef.current.add(payload.playerId);
-        if (donePlayersRef.current.size >= playerCountRef.current) {
-          // All players finished — short delay to absorb any late swipe events
-          setTimeout(() => setDone(true), 800);
+        if (!donePlayersRef.current.has(payload.playerId)) {
+          donePlayersRef.current.add(payload.playerId);
+          setDoneCount((c) => c + 1);
         }
       })
       .subscribe(async (status) => {
@@ -382,15 +398,15 @@ export default function SwipeScreen() {
       setIndex(next);
 
       if (next >= photos.length) {
-        if (mode === "deck") {
-          setWaiting(true);
+        setWaiting(true);
+        if (!donePlayersRef.current.has(myId.current)) {
+          donePlayersRef.current.add(myId.current);
           channelRef.current?.send({
             type:    "broadcast",
             event:   "player_done",
             payload: { playerId: myId.current },
           });
-        } else {
-          setDone(true);
+          setDoneCount((c) => c + 1);
         }
       }
     },
@@ -402,6 +418,16 @@ export default function SwipeScreen() {
   const triggerSwipe = (direction: "like" | "dislike") => {
     handleSwipe(direction);
   };
+
+  // ── All players done → navigate ──────────────────────────────────────────
+  useEffect(() => {
+    if (!waiting || done) return;
+    if (doneCount < playerCount) return;
+    // In first_match with no winner yet, wait a bit for match_found to arrive
+    const delay = (mode === "first_match" && !winnerPhotoRef.current) ? 2500 : 800;
+    const t = setTimeout(() => setDone(true), delay);
+    return () => clearTimeout(t);
+  }, [doneCount, playerCount, waiting, done]);
 
   // ── Done: navigate to results ─────────────────────────────────────────────
   useEffect(() => {
@@ -437,8 +463,6 @@ export default function SwipeScreen() {
 
   // ─── Waiting for other players (deck mode) ───────────────────────────────
   if (waiting && !done) {
-    const finished = donePlayersRef.current.size;
-    const total    = playerCountRef.current;
     return (
       <View style={[styles.center, { backgroundColor: C.bg }]}>
         <ActivityIndicator size="large" color={C.accent} />
@@ -446,7 +470,7 @@ export default function SwipeScreen() {
           Waiting for others…
         </Text>
         <Text style={[styles.loadingText, { color: C.textMuted, marginTop: SPACING.xs }]}>
-          {finished} / {total} players done
+          {doneCount} / {playerCount} players done
         </Text>
       </View>
     );
@@ -483,7 +507,7 @@ export default function SwipeScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={IS_WEB ? styles.headerWeb : styles.header}>
         <Pressable
           style={styles.headerLeave}
           onPress={() =>
@@ -513,59 +537,98 @@ export default function SwipeScreen() {
       </View>
 
       {/* Progress bar */}
-      <View style={styles.progressTrack}>
+      <View style={IS_WEB ? styles.progressTrackWeb : styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` as any }]} />
       </View>
 
-      {/* Card stack or done state */}
-      <View style={styles.deckArea}>
-        {done || remaining === 0 ? (
-          <View style={styles.doneCard}>
-            <Ionicons name="checkmark-circle" size={64} color={C.accent} />
-            <Text style={styles.doneTitle}>All done!</Text>
-            <Text style={styles.doneSubtitle}>Waiting for results…</Text>
-            <ActivityIndicator color={C.accent} style={{ marginTop: SPACING.md }} />
+      {/* Web: card + buttons centered */}
+      {IS_WEB ? (
+        <View style={styles.webContent}>
+          <View style={styles.deckArea}>
+            {done || remaining === 0 ? (
+              <View style={styles.doneCard}>
+                <Ionicons name="checkmark-circle" size={64} color={C.accent} />
+                <Text style={styles.doneTitle}>All done!</Text>
+                <Text style={styles.doneSubtitle}>Waiting for results…</Text>
+                <ActivityIndicator color={C.accent} style={{ marginTop: SPACING.md }} />
+              </View>
+            ) : (
+              [...visibleCards].reverse().map((photo, i) => {
+                const stackIndex = visibleCards.length - 1 - i;
+                return (
+                  <SwipeCard
+                    key={photo.id}
+                    photo={photo}
+                    isTop={stackIndex === 0}
+                    stackIndex={stackIndex}
+                    onSwipe={handleSwipe}
+                  />
+                );
+              })
+            )}
           </View>
-        ) : (
-          [...visibleCards].reverse().map((photo, i) => {
-            const stackIndex = visibleCards.length - 1 - i;
-            return (
-              <SwipeCard
-                key={photo.id}
-                photo={photo}
-                isTop={stackIndex === 0}
-                stackIndex={stackIndex}
-                onSwipe={handleSwipe}
-              />
-            );
-          })
-        )}
-      </View>
 
-      {/* Action buttons */}
-      {!done && remaining > 0 && (
-        <View style={[styles.actions, { paddingBottom: insets.bottom + SPACING.sm }]}>
-          <Pressable
-            style={({ pressed }) => [styles.actionBtn, styles.actionDislike, pressed && { opacity: 0.75 }]}
-            onPress={() => triggerSwipe("dislike")}
-          >
-            <Ionicons name="close" size={32} color={C.danger} />
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.actionBtn, styles.actionSuperLike, pressed && { opacity: 0.75 }]}
-            onPress={() => handleSwipe("super_like")}
-          >
-            <Ionicons name="star" size={24} color={C.accent} />
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.actionBtn, styles.actionLike, pressed && { opacity: 0.75 }]}
-            onPress={() => triggerSwipe("like")}
-          >
-            <Ionicons name="heart" size={28} color={C.success} />
-          </Pressable>
+          {!done && remaining > 0 && (
+            <View style={styles.actionsWeb}>
+              <Pressable
+                style={({ pressed }) => [styles.actionBtn, styles.actionDislike, pressed && { opacity: 0.75 }]}
+                onPress={() => triggerSwipe("dislike")}
+              >
+                <Ionicons name="close" size={36} color={C.danger} />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.actionBtn, styles.actionLike, pressed && { opacity: 0.75 }]}
+                onPress={() => triggerSwipe("like")}
+              >
+                <Ionicons name="heart" size={32} color={C.success} />
+              </Pressable>
+            </View>
+          )}
         </View>
+      ) : (
+        <>
+          {/* Mobile: card stack */}
+          <View style={styles.deckArea}>
+            {done || remaining === 0 ? (
+              <View style={styles.doneCard}>
+                <Ionicons name="checkmark-circle" size={64} color={C.accent} />
+                <Text style={styles.doneTitle}>All done!</Text>
+                <Text style={styles.doneSubtitle}>Waiting for results…</Text>
+                <ActivityIndicator color={C.accent} style={{ marginTop: SPACING.md }} />
+              </View>
+            ) : (
+              [...visibleCards].reverse().map((photo, i) => {
+                const stackIndex = visibleCards.length - 1 - i;
+                return (
+                  <SwipeCard
+                    key={photo.id}
+                    photo={photo}
+                    isTop={stackIndex === 0}
+                    stackIndex={stackIndex}
+                    onSwipe={handleSwipe}
+                  />
+                );
+              })
+            )}
+          </View>
+
+          {!done && remaining > 0 && (
+            <View style={[styles.actions, { paddingBottom: insets.bottom + SPACING.sm }]}>
+              <Pressable
+                style={({ pressed }) => [styles.actionBtn, styles.actionDislike, pressed && { opacity: 0.75 }]}
+                onPress={() => triggerSwipe("dislike")}
+              >
+                <Ionicons name="close" size={32} color={C.danger} />
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.actionBtn, styles.actionLike, pressed && { opacity: 0.75 }]}
+                onPress={() => triggerSwipe("like")}
+              >
+                <Ionicons name="heart" size={28} color={C.success} />
+              </Pressable>
+            </View>
+          )}
+        </>
       )}
 
       {/* Match overlay */}
@@ -573,6 +636,7 @@ export default function SwipeScreen() {
         <MatchOverlay
           photo={matchedPhoto}
           onDismiss={() => setMatchedPhoto(null)}
+          hideButton={mode === "first_match"}
         />
       )}
     </View>
@@ -582,10 +646,45 @@ export default function SwipeScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+  screen:    { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: C.bg },
   loadingText: { color: C.textMuted, fontSize: FONT_SIZE.md },
   emptyText:   { color: C.textMuted, fontSize: FONT_SIZE.lg, marginTop: SPACING.sm },
+
+  // ── Web layout ──────────────────────────────────────────────────────────────
+  headerWeb: {
+    flexDirection:     "row",
+    alignItems:        "center",
+    justifyContent:    "space-between",
+    maxWidth:          520,
+    width:             "100%" as any,
+    alignSelf:         "center" as const,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical:   SPACING.sm,
+  },
+  progressTrackWeb: {
+    height:          3,
+    backgroundColor: C.surface,
+    maxWidth:        520,
+    width:           "100%" as any,
+    alignSelf:       "center" as const,
+    borderRadius:    RADIUS.full,
+    overflow:        "hidden",
+    marginBottom:    SPACING.sm,
+  },
+  webContent: {
+    flex:           1,
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            SPACING.xl,
+    paddingBottom:  SPACING.xl,
+  },
+  actionsWeb: {
+    flexDirection:  "row",
+    alignItems:     "center",
+    justifyContent: "center",
+    gap:            SPACING.xl * 2,
+  },
 
   header: {
     flexDirection:     "row",
@@ -711,20 +810,14 @@ const styles = StyleSheet.create({
     borderWidth:     2,
   },
   actionDislike: {
-    width:           64,
-    height:          64,
+    width:           IS_WEB ? 80 : 64,
+    height:          IS_WEB ? 80 : 64,
     borderColor:     C.danger,
     backgroundColor: C.dangerSubtle,
   },
-  actionSuperLike: {
-    width:           52,
-    height:          52,
-    borderColor:     C.accent,
-    backgroundColor: C.accentSubtle,
-  },
   actionLike: {
-    width:           64,
-    height:          64,
+    width:           IS_WEB ? 80 : 64,
+    height:          IS_WEB ? 80 : 64,
     borderColor:     C.success,
     backgroundColor: C.successSubtle,
   },
@@ -742,11 +835,10 @@ const styles = StyleSheet.create({
 
   // Match overlay
   matchOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    flex:            1,
     backgroundColor: "rgba(0,0,0,0.82)",
     alignItems:      "center",
     justifyContent:  "center",
-    zIndex:          100,
   },
   matchCard: {
     width:           CARD_W,

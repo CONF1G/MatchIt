@@ -245,19 +245,3 @@ export async function deleteStorageFile(
   return { data: null, error: null };
 }
 
-/**
- * Șterge poza și thumbnail-ul ei din Storage.
- * Apelat automat din deletePhoto() — nu blocăm dacă eșuează.
- */
-export async function deleteCatalogPhotoFiles(
-  storagePath: string
-): Promise<void> {
-  const parts     = storagePath.split("/");
-  const fileName  = parts[parts.length - 1];
-  const thumbPath = [...parts.slice(0, -1), `thumb_${fileName}`].join("/");
-
-  await Promise.allSettled([
-    supabase.storage.from(BUCKET_CATALOG).remove([storagePath]),
-    supabase.storage.from(BUCKET_THUMBNAILS).remove([thumbPath]),
-  ]);
-}

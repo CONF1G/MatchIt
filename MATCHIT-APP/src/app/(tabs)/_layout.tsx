@@ -3,7 +3,7 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import LogoImg from "../../../assets/logo.png";
+import LogoImg from "../../../assets/logo2.png";
 import { COLORS, FONT_SIZE, RADIUS } from "../../config/theme";
 
 const C = COLORS;
@@ -132,8 +132,8 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   matchBtn: {
-    width:           48,
-    height:          48,
+    width:           80,
+    height:          80,
     borderRadius:    RADIUS.full,
     backgroundColor: C.surfaceHigh,
     alignItems:      "center",
@@ -141,13 +141,14 @@ const styles = StyleSheet.create({
     borderWidth:     1.5,
     borderColor:     C.border,
     marginBottom:    12,
+    overflow:        "hidden",
   },
   matchBtnActive: {
     backgroundColor: C.accentSubtle,
     borderColor:     C.borderAccent,
   },
   matchLogo: {
-    width:  26,
-    height: 26,
+    width:  1204,
+    height: 120,
   },
 });

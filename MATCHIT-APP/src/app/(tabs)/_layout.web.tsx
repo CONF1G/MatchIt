@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONT_SIZE, RADIUS, SPACING } from "../../config/theme";
 import { supabase } from "../../services/supabase";
 import { fetchUserCatalogs } from "../../services/catalog";
-import LogoImg from "../../../assets/logo.png";
+import LogoImg from "../../../assets/logo2.png";
 
 const C = COLORS;
 

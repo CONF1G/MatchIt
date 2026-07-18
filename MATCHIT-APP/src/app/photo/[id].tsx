@@ -16,7 +16,7 @@ import { usePhoto }  from "../../hooks/usePhoto";
 import { Button }    from "../../components/common/Button";
 import { Input }     from "../../components/common/Input";
 import { normalizeStorageUrl } from "../../services/storage";
-import { goBack } from "../../utils/navigation";
+import { goBack } from "../../services/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 // ─── Sub-componente ───────────────────────────────────────────────────────────

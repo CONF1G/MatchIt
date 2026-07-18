@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { goBack } from "../../utils/navigation";
+import { goBack } from "../../services/navigation";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -200,25 +200,33 @@ export default function CreateLobbyModal() {
         <View style={styles.field}>
           <Text style={styles.sectionLabel}>Mod de Joc</Text>
           <View style={styles.modesRow}>
-            {MODES.map((m) => (
-              <Pressable
-                key={m.id}
-                style={[styles.modeCard, mode === m.id && styles.modeCardActive]}
-                onPress={() => setMode(m.id)}
-              >
-                <Ionicons
-                  name={m.icon as any}
-                  size={22}
-                  color={mode === m.id ? COLORS.bg : COLORS.textMuted}
-                />
-                <Text style={[styles.modeLabel, mode === m.id && styles.modeLabelActive]}>
-                  {m.label}
-                </Text>
-                <Text style={[styles.modeDesc, mode === m.id && styles.modeDescActive]}>
-                  {m.desc}
-                </Text>
-              </Pressable>
-            ))}
+            {MODES.map((m) => {
+              const isTournament = m.id === "tournament";
+              return (
+                <Pressable
+                  key={m.id}
+                  style={[
+                    styles.modeCard,
+                    mode === m.id && styles.modeCardActive,
+                    isTournament && styles.modeCardDisabled,
+                  ]}
+                  onPress={() => !isTournament && setMode(m.id)}
+                  disabled={isTournament}
+                >
+                  <Ionicons
+                    name={m.icon as any}
+                    size={22}
+                    color={isTournament ? COLORS.textMuted : mode === m.id ? COLORS.bg : COLORS.textMuted}
+                  />
+                  <Text style={[styles.modeLabel, mode === m.id && !isTournament && styles.modeLabelActive, isTournament && styles.modeLabelDisabled]}>
+                    {m.label}
+                  </Text>
+                  <Text style={[styles.modeDesc, isTournament && styles.modeLabelDisabled]}>
+                    {isTournament ? "Coming soon..." : m.desc}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -345,7 +353,9 @@ const styles = StyleSheet.create({
     padding: SPACING.sm, borderWidth: 1, borderColor: COLORS.border,
     alignItems: "center", gap: 4,
   },
-  modeCardActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  modeCardActive:    { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  modeCardDisabled:  { opacity: 0.4 },
+  modeLabelDisabled: { color: COLORS.textMuted },
   modeLabel: { color: COLORS.text, fontSize: FONT_SIZE.xs, fontWeight: "700", textAlign: "center" },
   modeLabelActive: { color: COLORS.bg },
   modeDesc: { color: COLORS.textMuted, fontSize: 9, textAlign: "center", lineHeight: 12 },

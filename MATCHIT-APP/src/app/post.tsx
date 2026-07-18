@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/useAuth";
 import { fetchUserCatalogs } from "../services/catalog";
 import { createPhoto } from "../services/photo";
-import { goBack } from "../utils/navigation";
+import { goBack } from "../services/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../config/theme";
 
 const C = COLORS;

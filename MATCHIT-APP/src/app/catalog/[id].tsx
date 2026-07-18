@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, FlatList,
-  Pressable, ActivityIndicator, Alert, Share, RefreshControl,
+  Pressable, ActivityIndicator, Alert, Share, RefreshControl, Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,10 +14,11 @@ import { fetchPhotosByCatalog, deletePhoto } from "../../services/photo";
 import { normalizeStorageUrl } from "../../services/storage";
 import { checkCatalogSaved, saveCatalog, unsaveCatalog } from "../../services/social";
 import { PhotoMosaic } from "../../components/catalog/CatalogThumb";
-import { goBack } from "../../utils/navigation";
+import { goBack } from "../../services/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 const C = COLORS;
+const IS_WEB = Platform.OS === "web";
 
 type Photo = {
   id:    string;
@@ -240,6 +241,7 @@ export default function CatalogScreen() {
         keyExtractor={(item) => item.id}
         numColumns={3}
         columnWrapperStyle={{ gap: 2 }}
+        style={IS_WEB ? styles.flatListWeb : undefined}
         contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -379,6 +381,7 @@ export default function CatalogScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
+  flatListWeb: { maxWidth: 800, alignSelf: "center" as const, width: "100%" as any },
   center: {
     flex:           1,
     alignItems:     "center",

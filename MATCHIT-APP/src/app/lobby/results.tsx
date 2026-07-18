@@ -162,7 +162,7 @@ export default function ResultsScreen() {
   const params = useLocalSearchParams<Params>();
   const {
     matchId, mode, isGuest, guestId, guestName,
-    winnerPhotoUrl, winnerPhotoTitle, deckVotes,
+    winnerPhotoId, winnerPhotoUrl, winnerPhotoTitle, deckVotes,
   } = params;
   const amGuest  = isGuest === "1";
   const isDeck   = mode === "deck";
@@ -182,11 +182,12 @@ export default function ResultsScreen() {
 
   // ── Deck mode: parse ranked votes and fetch photo details ─────────────────
   useEffect(() => {
-    if (!isDeck || !deckVotes) return;
+    if (!isDeck || !deckVotes) { if (isDeck) setLoading(false); return; }
     (async () => {
       try {
         const ranked: { photoId: string; votes: number }[] = JSON.parse(deckVotes);
-        const positiveVotes = ranked.filter((r) => r.votes > 0);
+        // Only show photos liked by at least 2 players (real matches)
+        const positiveVotes = ranked.filter((r) => r.votes >= 2);
 
         if (positiveVotes.length === 0) {
           setRankedPhotos([]);
@@ -218,95 +219,20 @@ export default function ResultsScreen() {
     })();
   }, [isDeck, deckVotes]);
 
-  // ── Non-deck mode: collect match_found broadcasts ─────────────────────────
+  // ── Non-deck mode: use winner passed from swipe screen ───────────────────
   useEffect(() => {
-    if (isDeck || !matchId) return;
+    if (isDeck) return;
 
-    (async () => {
-      try {
-        const channel = supabase.channel(`match-presence:${matchId}`);
-        let resolved = false;
-
-        const timeout = setTimeout(async () => {
-          if (!resolved) { resolved = true; channel.unsubscribe(); await loadMatchData(); }
-        }, 3000);
-
-        const collectedMatches: MatchedPhoto[] = [];
-
-        channel
-          .on("presence", { event: "sync" }, () => {
-            const state = channel.presenceState<{ id: string; displayName: string }>();
-            setPlayers(Object.values(state).flat().map((p) => ({ id: p.id, displayName: p.displayName })));
-          })
-          .on("broadcast", { event: "match_found" }, ({ payload }) => {
-            if (!collectedMatches.some((m) => m.id === payload.photoId)) {
-              collectedMatches.push({
-                id:      payload.photoId,
-                url:     payload.imageUrl,
-                title:   payload.title ?? null,
-                likedBy: payload.matchedBy ?? [],
-              });
-            }
-          })
-          .subscribe(async (status) => {
-            if (status === "SUBSCRIBED") {
-              const { data: { session } } = await supabase.auth.getSession();
-              await channel.track({
-                type:        amGuest ? "guest" : "user",
-                id:          amGuest ? (guestId ?? "guest") : (session?.user.id ?? "anon"),
-                displayName: amGuest ? (guestName ?? "Guest") : (session?.user.email?.split("@")[0] ?? "Unknown"),
-                isHost:      false,
-              });
-
-              setTimeout(async () => {
-                if (!resolved) {
-                  resolved = true;
-                  clearTimeout(timeout);
-                  channel.unsubscribe();
-                  if (collectedMatches.length > 0) {
-                    setMatches(collectedMatches);
-                    setLoading(false);
-                  } else {
-                    await loadMatchData();
-                  }
-                }
-              }, 1500);
-            }
-          });
-      } catch {
-        await loadMatchData();
-      }
-    })();
-  }, [matchId, isDeck]);
-
-  const loadMatchData = async () => {
-    try {
-      const { data: match } = await supabase
-        .from("lobbies")
-        .select("catalog_id, mode")
-        .eq("id", matchId)
-        .single();
-
-      if (match?.catalog_id) {
-        const { data: photos } = await supabase
-          .from("photos")
-          .select("id, url, title")
-          .eq("catalog_id", match.catalog_id)
-          .limit(6);
-
-        setMatches(
-          (photos ?? []).slice(0, 3).map((p: any) => ({
-            id:      p.id,
-            url:     p.url,
-            title:   p.title ?? null,
-            likedBy: [],
-          }))
-        );
-      }
-    } finally {
-      setLoading(false);
+    if (winnerPhotoId && winnerPhotoUrl) {
+      setMatches([{
+        id:      winnerPhotoId,
+        url:     normalizeStorageUrl(winnerPhotoUrl) ?? winnerPhotoUrl,
+        title:   winnerPhotoTitle ?? null,
+        likedBy: [],
+      }]);
     }
-  };
+    setLoading(false);
+  }, [isDeck, winnerPhotoId, winnerPhotoUrl]);
 
   const handleExit = async () => {
     await supabase
@@ -663,31 +589,38 @@ const styles = StyleSheet.create({
   // ── Winner (first_match) ────────────────────────────────────────────────────
 
   winnerSection: {
+    flex:              1,
     alignItems:        "center",
+    justifyContent:    "center",
     alignSelf:         "center",
     width:             "100%",
-    maxWidth:          600,
+    maxWidth:          480,
     paddingHorizontal: SPACING.lg,
-    paddingBottom:     100,
-    gap:               SPACING.sm,
+    paddingBottom:     SPACING.xl,
+    gap:               SPACING.md,
   },
   winnerLabel: {
     color:         C.accent,
-    fontSize:      FONT_SIZE.xs,
+    fontSize:      FONT_SIZE.sm,
     fontWeight:    "900",
-    letterSpacing: 3,
+    letterSpacing: 4,
     textTransform: "uppercase",
   },
   winnerCard: {
     width:           "100%",
-    maxWidth:        560,
+    maxWidth:        400,
     alignSelf:       "center",
     borderRadius:    RADIUS.xl,
     overflow:        "hidden",
     backgroundColor: C.surface,
     borderWidth:     2,
     borderColor:     C.borderAccent,
-    aspectRatio:     1,
+    aspectRatio:     0.72,
+    shadowColor:     C.accent,
+    shadowOffset:    { width: 0, height: 8 },
+    shadowOpacity:   0.35,
+    shadowRadius:    24,
+    elevation:       16,
   },
   winnerImage: { width: "100%", height: "100%" },
   winnerFooter: {
@@ -695,14 +628,14 @@ const styles = StyleSheet.create({
     bottom:            0,
     left:              0,
     right:             0,
-    backgroundColor:   "rgba(0,0,0,0.65)",
+    backgroundColor:   "rgba(0,0,0,0.72)",
     paddingHorizontal: SPACING.lg,
-    paddingVertical:   SPACING.md,
+    paddingVertical:   SPACING.lg,
   },
   winnerTitle: {
     color:      C.text,
-    fontSize:   FONT_SIZE.lg,
-    fontWeight: "700",
+    fontSize:   FONT_SIZE.xl,
+    fontWeight: "800",
     textAlign:  "center",
   },
 
