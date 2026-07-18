@@ -7,7 +7,7 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
-import { goBack } from "../../utils/navigation";
+import { goBack } from "../../services/navigation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { supabase } from "../../services/supabase";

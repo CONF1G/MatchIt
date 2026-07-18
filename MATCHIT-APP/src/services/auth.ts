@@ -149,25 +149,9 @@ export async function updatePassword(
   return { data: null, error: null };
 }
 
-// ─── SESIUNE CURENTĂ ─────────────────────────────────────────────────────────
 
-/**
- * Aduce sesiunea curentă din AsyncStorage (persistată local).
- * Folosit la pornirea aplicației pentru a restaura sesiunea.
- */
-export async function getCurrentSession(): Promise<Session | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session;
-}
 
-/**
- * Aduce utilizatorul curent autentificat.
- */
-export async function getCurrentUser(): Promise<User | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
-  return user;
-}
+
 
 // ─── VERIFICARE USERNAME ──────────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchCatalogById, updateCatalog, deleteCatalog } from "../../services/catalog";
 import { Input }  from "../../components/common/Input";
 import { Button } from "../../components/common/Button";
-import { goBack } from "../../utils/navigation";
+import { goBack } from "../../services/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 const C = COLORS;

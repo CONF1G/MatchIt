@@ -4,7 +4,6 @@ import {
   TextInput, Alert, Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
@@ -12,28 +11,35 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 import { supabase } from "../../services/supabase";
 import { joinLobby } from "../../services/lobby";
-import LogoImg from "../../../assets/logo.png";
 
 const C = COLORS;
 
 export default function MatchLanding() {
   const insets = useSafeAreaInsets();
-  const [joinModal, setJoinModal] = useState(false);
-  const [code,      setCode]      = useState("");
-  const [joining,   setJoining]   = useState(false);
+  const [joinModal,  setJoinModal]  = useState(false);
+  const [code,       setCode]       = useState("");
+  const [joining,    setJoining]    = useState(false);
+  const [joinError,  setJoinError]  = useState<string | null>(null);
 
   const handleCreate = () => {
     router.push("/(modals)/create-lobby" as any);
   };
 
+  const closeJoinModal = () => {
+    setJoinModal(false);
+    setCode("");
+    setJoinError(null);
+  };
+
   const handleJoin = async () => {
     const trimmed = code.trim().toUpperCase();
     if (trimmed.length < 4) {
-      Alert.alert("Invalid code", "Enter the invite code you received.");
+      setJoinError("Enter the invite code you received.");
       return;
     }
     setJoining(true);
-    // Verify lobby exists
+    setJoinError(null);
+
     const { data: lobby } = await supabase
       .from("lobbies")
       .select("id, status")
@@ -42,25 +48,33 @@ export default function MatchLanding() {
 
     if (!lobby) {
       setJoining(false);
-      Alert.alert("Not found", "No active lobby with that code.");
+      setJoinError("No active lobby found with that code.");
       return;
     }
     if (lobby.status === "finished" || lobby.status === "cancelled") {
       setJoining(false);
-      Alert.alert("Lobby closed", "This lobby has already ended.");
+      setJoinError("This lobby has already ended.");
+      return;
+    }
+    if (lobby.status === "in_progress") {
+      setJoining(false);
+      setJoinError("This match has already started.");
       return;
     }
 
-    const { error: joinError } = await joinLobby(lobby.id);
+    const { error: lobbyJoinError } = await joinLobby(lobby.id);
     setJoining(false);
 
-    if (joinError) {
-      Alert.alert("Error", joinError);
+    if (lobbyJoinError) {
+      setJoinError(
+        lobbyJoinError === "Lobby is full"
+          ? "This lobby is full. Try a different code."
+          : lobbyJoinError
+      );
       return;
     }
 
-    setJoinModal(false);
-    setCode("");
+    closeJoinModal();
     router.push(`/lobby/${lobby.id}` as any);
   };
 
@@ -69,7 +83,6 @@ export default function MatchLanding() {
 
       {/* Hero */}
       <Animated.View entering={FadeInUp.duration(500)} style={styles.hero}>
-        <Image source={LogoImg} style={styles.logo} contentFit="contain" />
         <Text style={styles.heroTitle}>MatchIt</Text>
         <Text style={styles.heroSubtitle}>
           Swipe together, decide together.
@@ -104,21 +117,6 @@ export default function MatchLanding() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(260).springify()}>
-          <Pressable
-            style={({ pressed }) => [styles.card, styles.cardGuest, pressed && styles.cardPressed]}
-            onPress={() => router.push({ pathname: "/guest/join/[code]", params: { code: "" } })}
-          >
-            <View style={[styles.cardIcon, { backgroundColor: "#47FF9C18" }]}>
-              <Ionicons name="person-outline" size={28} color="#47FF9C" />
-            </View>
-            <View style={styles.cardText}>
-              <Text style={[styles.cardTitle, { color: "#47FF9C" }]}>Join as Guest</Text>
-              <Text style={styles.cardDesc}>No account needed — just enter your name and a code</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#47FF9C" />
-          </Pressable>
-        </Animated.View>
       </View>
 
       {/* Recent activity hint */}
@@ -130,17 +128,17 @@ export default function MatchLanding() {
       </Animated.View>
 
       {/* Join Modal */}
-      <Modal visible={joinModal} transparent animationType="fade" onRequestClose={() => setJoinModal(false)}>
+      <Modal visible={joinModal} transparent animationType="fade" onRequestClose={closeJoinModal}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalBackdrop}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setJoinModal(false)} />
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeJoinModal} />
           <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>Enter Invite Code</Text>
             <Text style={styles.modalSubtitle}>Ask the host for the 6-character code</Text>
 
             <TextInput
-              style={styles.codeInput}
+              style={[styles.codeInput, joinError ? { borderColor: C.danger } : null]}
               value={code}
-              onChangeText={(t) => setCode(t.toUpperCase())}
+              onChangeText={(t) => { setCode(t.toUpperCase()); setJoinError(null); }}
               placeholder="ABC123"
               placeholderTextColor={C.textMuted}
               autoCapitalize="characters"
@@ -150,8 +148,15 @@ export default function MatchLanding() {
               onSubmitEditing={handleJoin}
             />
 
+            {joinError && (
+              <View style={styles.errorRow}>
+                <Ionicons name="alert-circle" size={14} color={C.danger} />
+                <Text style={styles.errorText}>{joinError}</Text>
+              </View>
+            )}
+
             <View style={styles.modalActions}>
-              <Pressable style={styles.cancelBtn} onPress={() => { setJoinModal(false); setCode(""); }}>
+              <Pressable style={styles.cancelBtn} onPress={closeJoinModal}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
@@ -270,4 +275,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#5C9EFF",
   },
   joinBtnText: { color: "#fff", fontSize: FONT_SIZE.base, fontWeight: "800" },
+
+  errorRow: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           SPACING.xs,
+  },
+  errorText: {
+    flex:      1,
+    color:     C.danger,
+    fontSize:  FONT_SIZE.sm,
+  },
 });

@@ -17,7 +17,7 @@ export async function getLobbyByCode(
 ): Promise<{ data: any | null; error: string | null }> {
   const { data, error } = await supabase
     .from("lobbies")
-    .select("id, mode, status, invite_code, host_id")
+    .select("id, mode, status, invite_code, host_id, max_players")
     .eq("invite_code", code.trim().toUpperCase())
     .single();
 

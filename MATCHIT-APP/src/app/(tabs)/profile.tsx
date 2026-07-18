@@ -10,9 +10,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../../hooks/useAuth";
 import { fetchUserCatalogs } from "../../services/catalog";
+import { fetchCatalogPreviews, fetchSavedCatalogs } from "../../services/social";
+import { PhotoMosaic } from "../../components/catalog/CatalogThumb";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 const C = COLORS;
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
+  return result;
+}
 
 // ─── Stat pill ────────────────────────────────────────────────────────────────
 
@@ -34,16 +42,7 @@ function CatalogCard({ item }: { item: any }) {
       onPress={() => router.push(`/catalog/${item.id}`)}
     >
       <View style={styles.catalogThumb}>
-        {item.cover_url ? (
-          <Image
-            source={{ uri: item.cover_url }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            transition={200}
-          />
-        ) : (
-          <Ionicons name="images-outline" size={22} color={C.textMuted} />
-        )}
+        <PhotoMosaic photos={item.previewPhotos ?? []} />
         {item.is_private && (
           <View style={styles.privateBadge}>
             <Ionicons name="lock-closed" size={10} color={C.text} />
@@ -62,14 +61,27 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, profile, signOut, signingOut } = useAuth();
 
-  const [catalogs,   setCatalogs]   = useState<any[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [catalogs,      setCatalogs]      = useState<any[]>([]);
+  const [savedCatalogs, setSavedCatalogs] = useState<any[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [refreshing,    setRefreshing]    = useState(false);
 
   const loadCatalogs = useCallback(async () => {
     if (!user) return;
-    const { data } = await fetchUserCatalogs(user.id, true);
-    setCatalogs(data ?? []);
+    const [{ data }, { data: saved }] = await Promise.all([
+      fetchUserCatalogs(user.id, true),
+      fetchSavedCatalogs(),
+    ]);
+
+    const rows      = data  ?? [];
+    const savedRows = saved ?? [];
+
+    const allIds = [...rows.map((c) => c.id), ...savedRows.map((c) => c.id)];
+    const previewMap = allIds.length ? await fetchCatalogPreviews(allIds) : {};
+
+    setCatalogs(rows.map((c) => ({ ...c, previewPhotos: previewMap[c.id] ?? [] })));
+    setSavedCatalogs(savedRows.map((c) => ({ ...c, previewPhotos: previewMap[c.id] ?? [] })));
+
     setLoading(false);
     setRefreshing(false);
   }, [user]);
@@ -146,6 +158,14 @@ export default function ProfileScreen() {
                 </Pressable>
 
                 <Pressable
+                  style={styles.editBtn}
+                  onPress={() => router.push("/(auth)/reset-password?from=profile" as any)}
+                >
+                  <Ionicons name="lock-closed-outline" size={16} color={C.text} />
+                  <Text style={styles.editBtnText}>Password</Text>
+                </Pressable>
+
+                <Pressable
                   style={[styles.editBtn, { flex: 0, paddingHorizontal: SPACING.md }]}
                   onPress={handleSignOut}
                   disabled={signingOut}
@@ -190,6 +210,25 @@ export default function ProfileScreen() {
                 <Ionicons name="add" size={18} color={C.bg} />
                 <Text style={styles.createBtnText}>Create Catalog</Text>
               </Pressable>
+            </View>
+          ) : null
+        }
+        ListFooterComponent={
+          savedCatalogs.length > 0 ? (
+            <View style={styles.savedSection}>
+              <View style={[styles.sectionHeader, { marginTop: SPACING.lg }]}>
+                <Text style={styles.sectionTitle}>Saved</Text>
+              </View>
+              {chunk(savedCatalogs, 2).map((row, i) => (
+                <View key={i} style={styles.savedRow}>
+                  {row.map((item) => (
+                    <View key={item.id} style={{ flex: 1 }}>
+                      <CatalogCard item={item} />
+                    </View>
+                  ))}
+                  {row.length === 1 && <View style={{ flex: 1 }} />}
+                </View>
+              ))}
             </View>
           ) : null
         }
@@ -363,6 +402,14 @@ const styles = StyleSheet.create({
   catalogMeta: {
     color:    C.textMuted,
     fontSize: FONT_SIZE.xs,
+  },
+
+  // Saved section
+  savedSection: { marginTop: SPACING.xs },
+  savedRow: {
+    flexDirection: "row",
+    gap:           SPACING.sm,
+    marginBottom:  SPACING.sm,
   },
 
   // Empty state

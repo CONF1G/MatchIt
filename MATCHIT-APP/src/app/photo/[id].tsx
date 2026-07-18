@@ -16,7 +16,7 @@ import { usePhoto }  from "../../hooks/usePhoto";
 import { Button }    from "../../components/common/Button";
 import { Input }     from "../../components/common/Input";
 import { normalizeStorageUrl } from "../../services/storage";
-import { goBack } from "../../utils/navigation";
+import { goBack } from "../../services/navigation";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 // ─── Sub-componente ───────────────────────────────────────────────────────────
@@ -249,7 +249,10 @@ export default function PhotoScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        contentContainerStyle={[
+          { paddingBottom: insets.bottom + 100 },
+          Platform.OS === "web" && styles.scrollContentWeb,
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {/* ── Imagine ── */}
@@ -598,4 +601,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent, alignItems: "center", justifyContent: "center",
   },
   sendBtnDisabled: { opacity: 0.4 },
+
+  scrollContentWeb: {
+    maxWidth:  680,
+    width:     "100%" as any,
+    alignSelf: "center" as const,
+  },
 });

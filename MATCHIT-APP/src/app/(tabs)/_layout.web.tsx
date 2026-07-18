@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { Slot, useRouter, Href } from "expo-router";
 import {
-  View, Text, TextInput, Pressable, ScrollView,
+  View, Text, Pressable, ScrollView,
   StyleSheet, ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 import { COLORS, FONT_SIZE, RADIUS, SPACING } from "../../config/theme";
 import { supabase } from "../../services/supabase";
 import { fetchUserCatalogs } from "../../services/catalog";
-import LogoImg from "../../../assets/logo.png";
+import LogoImg from "../../../assets/logo2.png";
 
 const C = COLORS;
 
@@ -19,7 +19,6 @@ type CatalogItem = { id: string; title: string; cover_url?: string | null };
 export default function WebLayout() {
   const router = useRouter();
 
-  const [search,         setSearch]         = useState("");
   const [dropdownOpen,   setDropdownOpen]   = useState(false);
   const [catalogs,       setCatalogs]       = useState<CatalogItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -52,12 +51,6 @@ export default function WebLayout() {
     })();
   }, []);
 
-  const handleSearch = () => {
-    const q = search.trim();
-    if (!q) return;
-    router.push(`/?q=${encodeURIComponent(q)}` as Href);
-  };
-
   const handleSignOut = async () => {
     setDropdownOpen(false);
     await supabase.auth.signOut();
@@ -84,24 +77,8 @@ export default function WebLayout() {
           <Text style={styles.logoText}>MatchIt</Text>
         </Pressable>
 
-        {/* Search */}
-        <View style={styles.searchWrap}>
-          <Ionicons name="search-outline" size={14} color={C.textMuted} style={{ marginRight: 6 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search photos, catalogs…"
-            placeholderTextColor={C.textMuted}
-            value={search}
-            onChangeText={setSearch}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-          />
-          {search.length > 0 && (
-            <Pressable onPress={() => setSearch("")} hitSlop={6}>
-              <Ionicons name="close-circle" size={14} color={C.textMuted} />
-            </Pressable>
-          )}
-        </View>
+        {/* Spacer pushes actions to the right */}
+        <View style={{ flex: 1 }} />
 
         {/* Right: quick actions + profile */}
         <View style={styles.navRight}>
@@ -122,11 +99,6 @@ export default function WebLayout() {
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{userInitials}</Text>
               </View>
-              <Feather
-                name={dropdownOpen ? "chevron-up" : "chevron-down"}
-                size={13}
-                color={C.textMuted}
-              />
             </Pressable>
 
             {dropdownOpen && (
@@ -265,25 +237,6 @@ const styles = StyleSheet.create({
   },
   logo:     { width: 22, height: 22 },
   logoText: { color: C.text, fontSize: FONT_SIZE.md, fontWeight: "900", letterSpacing: -0.3 },
-
-  searchWrap: {
-    flex:              1,
-    flexDirection:     "row",
-    alignItems:        "center",
-    backgroundColor:   C.bg,
-    borderRadius:      RADIUS.full,
-    borderWidth:       1,
-    borderColor:       C.border,
-    paddingHorizontal: 12,
-    height:            30,
-    maxWidth:          420,
-  },
-  searchInput: {
-    flex:      1,
-    color:     C.text,
-    fontSize:  FONT_SIZE.sm,
-    outlineStyle: "none",
-  } as any,
 
   navRight: {
     flexDirection: "row",
@@ -445,9 +398,6 @@ const styles = StyleSheet.create({
     overflow:        "hidden",
   },
   contentInner: {
-    flex:      1,
-    maxWidth:  1080,
-    width:     "100%",
-    alignSelf: "center",
+    flex: 1,
   },
 });

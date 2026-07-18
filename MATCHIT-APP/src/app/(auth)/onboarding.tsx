@@ -6,7 +6,7 @@
 import { useState } from "react";
 import {
   View, Text, StyleSheet, Pressable,
-  ScrollView,
+  ScrollView, Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth }  from "../../hooks/useAuth";
 import { Button }   from "../../components/common/Button";
+import { supabase } from "../../services/supabase";
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../../config/theme";
 
 // ─── Categorii disponibile ────────────────────────────────────────────────────
@@ -78,9 +79,10 @@ function CategoryCard({
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const { updateProfile, updatingProfile } = useAuth();
+  const { refreshProfile } = useAuth();
 
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected,  setSelected]  = useState<string[]>([]);
+  const [saving,    setSaving]     = useState(false);
 
   const toggleCategory = (id: string) => {
     setSelected((prev) =>
@@ -88,21 +90,39 @@ export default function OnboardingScreen() {
     );
   };
 
-  const handleContinue = async () => {
-    // Salvăm interesele în profiles.interests + marcăm onboarding_completed
-    // Conform diagramei din PRD: PATCH profiles SET interests, onboarding_completed = true
-    const ok = await updateProfile({
-      interests:            selected,
-      onboarding_completed: true,
-    });
-
-    if (ok) {
-      router.replace("/(tabs)");
+  const save = async (interests: string[]) => {
+    setSaving(true);
+    // Get session directly — hook state may not be set yet right after registration
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setSaving(false);
+      Alert.alert("Eroare", "Sesiunea a expirat. Te rugăm să te autentifici din nou.", [
+        { text: "OK", onPress: () => router.replace("/(auth)/login") },
+      ]);
+      return false;
     }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ interests, onboarding_completed: true })
+      .eq("id", session.user.id);
+
+    setSaving(false);
+    if (error) {
+      Alert.alert("Eroare", error.message);
+      return false;
+    }
+    await refreshProfile();
+    return true;
+  };
+
+  const handleContinue = async () => {
+    const ok = await save(selected);
+    if (ok) router.replace("/(tabs)");
   };
 
   const handleSkip = async () => {
-    await updateProfile({ onboarding_completed: true } as any);
+    await save([]);
     router.replace("/(tabs)");
   };
 
@@ -150,10 +170,10 @@ export default function OnboardingScreen() {
       {/* Footer */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
         <Button
-          label={updatingProfile ? "Se salvează..." : "Continuă"}
+          label={saving ? "Se salvează..." : "Continuă"}
           onPress={handleContinue}
-          loading={updatingProfile}
-          disabled={selected.length < 1 || updatingProfile}
+          loading={saving}
+          disabled={selected.length < 1 || saving}
           fullWidth
           rightIcon="arrow-forward"
         />
