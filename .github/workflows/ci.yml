@@ -1,23 +1,12 @@
-# CI: install, lint, test, build for a TypeScript repo
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-permissions:
-  contents: read
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
     name: Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: MATCHIT-APP
+
     strategy:
       fail-fast: false
       matrix:
