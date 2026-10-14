@@ -40,3 +40,6 @@ npx expo start --clear
 ```
 
 > ⚠️ URL-urile Cloudflare se schimbă la fiecare restart al tunnel-ului — actualizează `.env` de fiecare dată.
+
+
+https://github.com/CONF1G/MatchIt/actions/workflows/ci.yml/badge.svg
